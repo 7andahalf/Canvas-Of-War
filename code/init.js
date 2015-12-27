@@ -33,7 +33,7 @@ function img_res(path)
 	
 	return i;
 }
-\
+
 function write_text(options)
 {
 	var x = options.x;
