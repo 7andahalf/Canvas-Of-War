@@ -1,2 +1,2 @@
-# Keybored
-A fun way to learn typing
+# Tiny Army
+An online 2d multiplayer shooting game
