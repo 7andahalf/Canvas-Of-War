@@ -225,7 +225,7 @@ game.prototype.setup = function()
       this.game_objects.push(bdy);
       bdy.tp = "nodraw";
     }
-    x: x + 10, y: y+ 11}));
+
     y = y + 20;
     x = x + 140;
     this.player = new player(global_game, { image: img_res('man.png'), x: x + 5, y:y +  8, width: 2.6 });
@@ -233,6 +233,8 @@ game.prototype.setup = function()
 
     //this.player = new player(global_game, { color: "red", x: 5, y: 8, width: 2.6 });
     //this.gun = new Body(global_game, {color: "blue", x: 7, y: 8, width: 4 , height: 1.5})
+
+    
 
     this.game_objects.push(this.player);
     this.game_objects.push(this.gun);
