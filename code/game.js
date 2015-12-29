@@ -1,32 +1,105 @@
+/*
+ * Canvas Of War
+ * An online 2d multiplayer shooting game
+ * https://github.com/7andahalf/
+ */
 
 var global_game = null;
+var messages = [];
+var resolution = 1;
+$(function() {start_game();});
 
-$(function() { 
-    start_game();
-});
-
-function start_game()
-{
+function start_game() {
     var g = new game();
-
     global_game = g;
-
-    
-    $(window).resize(function() {
-        g.resize();
-    });
+    //$(window).resize(function() {g.resize();});
     g.keys = [];
-    g.start(); 
+    g.players = [];
+    g.name = prompt("Please enter your name", "Vinay");
+    g.socket = io();
+    socketRecieve();
+    socketRecieveMessage();
+    g.start();
+}
+
+function socketRecieveMessage(){
+  global_game.socket.on('message', function(msg){
+    messages.push(msg);
+  });
+}
+
+function socketRecieve(){
+  global_game.socket.on('game', function(msg){
+    if(msg.name == global_game.name){return;}
+    var pr = 0;
+    for(var i in global_game.players){
+      if(global_game.players[i].name == msg.name){pr=global_game.players[i];}
+    }
+    if(pr == 0){
+      lastmess = 0;
+      socketSend();
+
+      var gplayer = new player(global_game, { image: img_res('man.png'), x: 5, y: 8, width: 2.6 , type: "static", density: 0});
+      gplayer.gun = new ogun(global_game, { image: img_res('gun.png'), x:6, y: 8.5, width: 4 , height: 1.5})
+
+      global_game.game_objects.push(gplayer);
+      global_game.game_objects.push(gplayer.gun);
+
+      def = new Box2D.Dynamics.Joints.b2RevoluteJointDef();
+      def.Initialize(gplayer.body,gplayer.gun.body,new b2Vec2(5,8.5));
+      var joint = global_game.world.CreateJoint(def);
+      gplayer.name = msg.name;
+      gplayer.body.SetPosition(new b2Vec2(msg.plposx, msg.plposy));
+      gplayer.gun.body.SetAngle(msg.gunang);
+      gplayer.gun.name = msg.name;
+
+      global_game.players.push(gplayer);
+
+    }else{
+      pr.body.SetPosition(new b2Vec2(msg.plposx, msg.plposy));
+      pr.gun.body.SetAngle(msg.gunang);
+      while(msg.bull > 0){
+        pr.gun.shoot(pr.body.GetPosition(),msg.gunang);
+          msg.bull--;
+        }
+      }
+  });
+}
+
+function socketMessage(k){
+  global_game.socket.emit('message', k);
+}
+
+var lastmess = 0;
+function socketSend(){
+
+  function roundd(v){
+    return Math.round(v * 10)/10;
+  }
+
+  function rounde(v){
+    return Math.round(v * 100)/100;
+  }
+
+  plx = global_game.player.body.GetPosition().x;
+  ply = global_game.player.body.GetPosition().y;
+  gan = global_game.gun.body.GetAngle();
+  bull = global_game.gun.bull;
+
+  if(lastmess == 0 || Math.abs(lastmess.plposx - plx) > 0.1 || Math.abs(lastmess.plposy - ply) > 0.1 || Math.abs(lastmess.gunang - gan) > 0.05 || bull > 0){
+    lastmess = {name : global_game.name, plposx : roundd(plx),  plposy : roundd(ply), gunang: rounde(gan), bull: bull};
+    global_game.socket.emit('game', {name : global_game.name, plposx : plx,  plposy : ply, gunang: gan, bull: bull}); 
+    global_game.gun.bull = 0;
+  }       
 }
 
 function game()
 {
     this.fps = 60;
     this.scale = 20;
-
     this.game_objects = [];
-    
     this.health = 100;
+    this.ammunition = 100;
     this.booster = 100;
     this.to_destroy = [];
     this.time_elapsed = 0;
@@ -42,8 +115,8 @@ game.prototype.resize = function()
     canvas.width(w);
     canvas.height(h);
 
-    canvas.attr('width' , w * 0.75);
-    canvas.attr('height' , h * 0.75);
+    canvas.attr('width' , w * resolution);
+    canvas.attr('height' , h * resolution);
     
     this.canvas_width = canvas.attr('width');
     this.canvas_height = canvas.attr('height');
@@ -69,34 +142,32 @@ game.prototype.setup = function()
 
     this.create_box2d_world();
 
-    
     this.world = this.box2d_world;
     this.element = canvas;
     this.context = ctx;
-    //global_game.scale = 10;
+
     this.context.scale(global_game.scale,global_game.scale);
 
     this.canvas.posx = this.canvas_width/(2 * this.scale);
     this.canvas.posy = this.canvas_height/(2 * this.scale);
 
-    /*this.game_objects.push(new Body(global_game, { color: "red", type: "static", x: 0, y: 0, height: 50,  width: 0.5 }));
-    this.game_objects.push(new Body(global_game, { color: "red", type: "static", x:51, y: 0, height: 50,  width: 0.5}));
-    this.game_objects.push(new Body(global_game, { color: "red", type: "static", x: 0, y: 0, height: 0.5, width: 120 }));
-    this.game_objects.push(new Body(global_game, { color: "red", type: "static", x: 0, y: 25, height: 0.5, width: 120 }));*/
+    var obj = new Body(global_game, { color: "red", type: "static", x: 0, y: 0, height: 1000,  width: 0.5 });
+    obj.tp = "dend";
+    this.game_objects.push(obj);
+
+    var obj = new Body(global_game, { color: "red", type: "static", x:450, y: 0, height: 1000,  width: 0.5});
+    obj.tp = "dend";
+    this.game_objects.push(obj);
+
+    var obj = new Body(global_game, { color: "red", type: "static", x: 0, y: 0, height: 0.5, width: 900 });
+    obj.tp = "dend";
+    this.game_objects.push(obj);
+
+    var obj = new Body(global_game, { color: "red", type: "static", x: 0, y: 500, height: 0.5, width: 900 });
+    obj.tp = "dend";
+    this.game_objects.push(obj);
 
     var x= 100,y = 100;
-
-    //this.game_objects.push(new Body(global_game, { image: img_res('gun.png'), type: "static", x: x + 0, y: y + 0, height: 50,  width: 2 }));
-    //this.game_objects.push(new Body(global_game, { image: img_res('gun.png'), type: "static", x:x + 51, y:y +  0, height: 50,  width: 2}));
-    //this.game_objects.push(new Body(global_game, { image: img_res('gun.png'), type: "static", x: x + 0, y: y + 0, height: 5, width: 120 }));
-    //this.game_objects.push(new Body(global_game, { image: img_res('gun.png'), type: "static", x: x + 0, y: y + 25, height: 5, width: 120 }));
-    //this.game_objects.push(new Body(global_game, { color: "red", type: "static", x: this.canvas_width/(2 * this.scale), y: 13, height: 1, width: 1 }));
-
-    //MAP/////////////////////
-
-    /*this.game_objects.push(new Body(global_game, { color: "red", shape: "polygon", type: "static",height: 5, width: 120,
-                          points: [ { x:0, y:0 },{ x:10, y:0 } , { x:-6, y:10 },{ x:-6, y:2 }],
-                          x: x + 10, y: y+ 11}));*/
 
     var obj_one = {"rigidBodies":[{"name":"Name","imagePath":"../pcs/1.png","origin":{"x":0,"y":0},"polygons":[[{"x":0.1549999862909317,"y":0.1312500387430191},{"x":0.17750002443790436,"y":0.10375002771615982},{"x":0.21500001847743988,"y":0.07875005155801773},{"x":0.2800000309944153,"y":0.0662500336766243}],[{"x":0.2800000309944153,"y":0.0662500336766243},{"x":0.3175000250339508,"y":0.04125005379319191},{"x":0.3750000298023224,"y":0.04375002160668373}],[{"x":0.5600000619888306,"y":0.03375006094574928},{"x":0.6225000619888306,"y":0.008750052191317081},{"x":0.70250004529953,"y":0.01125004980713129},{"x":0.762499988079071,"y":0.03625005856156349},{"x":0.79749995470047,"y":0.07125002890825272},{"x":0.8299999833106995,"y":0.12125004082918167}],[{"x":0.8700000643730164,"y":0.15625004470348358},{"x":0.9024999737739563,"y":0.18375001847743988},{"x":0.9099999666213989,"y":0.23875002562999725}],[{"x":0.9274999499320984,"y":0.2562500536441803},{"x":0.9550000429153442,"y":0.27125003933906555},{"x":0.9575000405311584,"y":0.29375001788139343}],[{"x":0.9575000405311584,"y":0.29375001788139343},{"x":0.9474999308586121,"y":0.3087500333786011},{"x":0.9150000214576721,"y":0.33625003695487976},{"x":0.8575000166893005,"y":0.33875003457069397},{"x":0.9099999666213989,"y":0.23875002562999725},{"x":0.9274999499320984,"y":0.2562500536441803}],[{"x":0.6100000739097595,"y":0.3412500321865082},{"x":0.5149999856948853,"y":0.3462500274181366},{"x":0.5024999976158142,"y":0.04375002160668373},{"x":0.5600000619888306,"y":0.03375006094574928},{"x":0.8299999833106995,"y":0.12125004082918167}],[{"x":0.8299999833106995,"y":0.12125004082918167},{"x":0.8700000643730164,"y":0.15625004470348358},{"x":0.9099999666213989,"y":0.23875002562999725},{"x":0.8575000166893005,"y":0.33875003457069397},{"x":0.7924999594688416,"y":0.3487500250339508},{"x":0.7200000882148743,"y":0.3487500250339508},{"x":0.6100000739097595,"y":0.3412500321865082}],[{"x":0.5149999856948853,"y":0.3462500274181366},{"x":0.44249996542930603,"y":0.3537500202655792},{"x":0.35750001668930054,"y":0.36125001311302185},{"x":0.27000004053115845,"y":0.3537500202655792},{"x":0.1824999898672104,"y":0.33375000953674316},{"x":0.11250001937150955,"y":0.15625004470348358}],[{"x":0.11250001937150955,"y":0.15625004470348358},{"x":0.1549999862909317,"y":0.1312500387430191},{"x":0.2800000309944153,"y":0.0662500336766243},{"x":0.3750000298023224,"y":0.04375002160668373},{"x":0.5024999976158142,"y":0.04375002160668373},{"x":0.5149999856948853,"y":0.3462500274181366}],[{"x":0.1824999898672104,"y":0.33375000953674316},{"x":0.10000003129243851,"y":0.3162500560283661},{"x":0.052499983459711075,"y":0.27625003457069397},{"x":0.04249999299645424,"y":0.21625004708766937},{"x":0.07499996572732925,"y":0.17125003039836884},{"x":0.11250001937150955,"y":0.15625004470348358}]],"circles":[],"shapes":[{"type":"POLYGON","vertices":[{"x":0.04249999299645424,"y":0.21625004708766937},{"x":0.052499983459711075,"y":0.27625003457069397},{"x":0.10000003129243851,"y":0.3162500560283661},{"x":0.1824999898672104,"y":0.33375000953674316},{"x":0.27000004053115845,"y":0.3537500202655792},{"x":0.35750001668930054,"y":0.36125001311302185},{"x":0.44249996542930603,"y":0.3537500202655792},{"x":0.5149999856948853,"y":0.3462500274181366},{"x":0.6100000739097595,"y":0.3412500321865082},{"x":0.7200000882148743,"y":0.3487500250339508},{"x":0.7924999594688416,"y":0.3487500250339508},{"x":0.8575000166893005,"y":0.33875003457069397},{"x":0.9150000214576721,"y":0.33625003695487976},{"x":0.9474999308586121,"y":0.3087500333786011},{"x":0.9575000405311584,"y":0.29375001788139343},{"x":0.9550000429153442,"y":0.27125003933906555},{"x":0.9274999499320984,"y":0.2562500536441803},{"x":0.9099999666213989,"y":0.23875002562999725},{"x":0.9024999737739563,"y":0.18375001847743988},{"x":0.8700000643730164,"y":0.15625004470348358},{"x":0.8299999833106995,"y":0.12125004082918167},{"x":0.79749995470047,"y":0.07125002890825272},{"x":0.762499988079071,"y":0.03625005856156349},{"x":0.70250004529953,"y":0.01125004980713129},{"x":0.6225000619888306,"y":0.008750052191317081},{"x":0.5600000619888306,"y":0.03375006094574928},{"x":0.5024999976158142,"y":0.04375002160668373},{"x":0.4449999928474426,"y":0.04375002160668373},{"x":0.3750000298023224,"y":0.04375002160668373},{"x":0.3175000250339508,"y":0.04125005379319191},{"x":0.2800000309944153,"y":0.0662500336766243},{"x":0.21500001847743988,"y":0.07875005155801773},{"x":0.17750002443790436,"y":0.10375002771615982},{"x":0.1549999862909317,"y":0.1312500387430191},{"x":0.11250001937150955,"y":0.15625004470348358},{"x":0.07499996572732925,"y":0.17125003039836884}]}]}],"dynamicObjects":[]};
     for(var j in obj_one.rigidBodies[0].polygons){
@@ -290,13 +361,30 @@ game.prototype.setup = function()
 
     y = y;
     x = x + 140;
-    this.player = new player(global_game, { image: img_res('man.png'), x: x + 5, y:y +  8, width: 2.6 });
-    this.gun = new gun(global_game, { image: img_res('gun.png'), x: x + 6, y:y +  8.5, width: 4 , height: 1.5})
+
+    spawnloc = [[115, 100],
+                [115, 130],
+                [110, 160],
+                [150, 160],
+                [170, 120],
+                [245, 110],
+                [245, 140],
+                [230, 165],
+                [275, 165]]
+
+    loc = spawnloc[Math.floor(Math.random()*spawnloc.length)];
+
+    //this.player = new player(global_game, { image: img_res('man.png'), x: x + 5, y:y +  8, width: 2.6 });
+    //this.gun = new gun(global_game, { image: img_res('gun.png'), x: x + 6, y:y +  8.5, width: 4 , height: 1.5})
+
+    this.player = new player(global_game, { image: img_res('man.png'), x: loc[0], y:loc[1], width: 2.6 });
+    this.gun = new gun(global_game, { image: img_res('gun.png'), x: loc[0]+1, y:loc[1]+0.5, width: 4 , height: 1.5})
+
+    this.player.m = true;
+    this.gun.m = true;
 
     //this.player = new player(global_game, { color: "red", x: 5, y: 8, width: 2.6 });
     //this.gun = new gun(global_game, {color: "blue", x: x + 6, y:y +  8.5, width: 4 , height: 1.5})
-
-    
 
     this.game_objects.push(this.player);
     this.game_objects.push(this.gun);
@@ -304,11 +392,13 @@ game.prototype.setup = function()
     def = new Box2D.Dynamics.Joints.b2RevoluteJointDef();
     def.Initialize(this.player.body,
                    this.gun.body,
-                   new b2Vec2(x+5,y+8.5));
+                   new b2Vec2(loc[0],loc[1]+0.5));
     var joint = this.world.CreateJoint(def);
 
     this.start_handling();
     this.setup_collision_handler();
+
+    socketSend();
 }
 
 game.prototype.create_box2d_world = function()
@@ -330,11 +420,17 @@ game.prototype.start = function()
 
     this.tick();
 }
+
 var img_main_b = img_res('main_b.png');
 var img_main_f = img_res('main_f.png');
 var img_bg = img_res('bg.png');
 var img_heart = img_res('heart.png');
 var img_boost = img_res('boost.png');
+var img_ammu = img_res('ammu.png');
+var img_arrow = img_res('arrow.png');
+var lastm = 0;
+var lmid = 0; 
+var lmv = 0;
 
 game.prototype.redraw_world = function()
 {
@@ -352,8 +448,13 @@ game.prototype.redraw_world = function()
         this.game_objects[i].draw(this.ctx);
     }
 
+    var pl = global_game.player.body.GetPosition();
+
+    if(!global_game.player.died){ 
+      write_text({x : pl.x, y : pl.y - 2.2 , font : 'bold 0.9px Arial' , color : 'black' , text : global_game.name, ctx : this.ctx, align : "center"})
+    }
+
     if(global_game.gun.showshoot >= 0){
-          var pl = global_game.player.body.GetPosition();
           var offs = -0.1;
           var angle = global_game.gun.body.GetAngle();
           if(Math.cos(angle) < 0){offs = 0.1;}
@@ -361,16 +462,42 @@ game.prototype.redraw_world = function()
           global_game.ctx.drawImage(global_game.gun.imgss, pl.x - 0.3 + (3.3 * Math.cos(angle))  , pl.y + (3.3 * Math.sin(angle)), 1, 1);
           global_game.gun.showshoot--;
         }
+
+    plm = pl;
+
+    for(var i in global_game.players){
+      var pl = global_game.players[i].body.GetPosition();
+      write_text({x : pl.x, y : pl.y - 2.2 , font : 'bold 0.9px Arial' , color : 'black' , text : global_game.players[i].name, ctx : this.ctx, align : "center"})
+      if(global_game.players[i].gun.showshoot > 0){
+          var offs = -0.1;
+          var angle = global_game.players[i].gun.body.GetAngle();
+          if(Math.cos(angle) < 0){offs = 0.1;}
+          angle = global_game.players[i].gun.body.GetAngle()+offs;
+          global_game.ctx.drawImage(global_game.gun.imgss, pl.x - 0.3 + (3.3 * Math.cos(angle))  , pl.y + (3.3 * Math.sin(angle)), 1, 1);
+          global_game.players[i].gun.showshoot--;
+
+          // Draw arrow
+          d = (plm.y-pl.y)*(plm.y-pl.y) + (plm.x-pl.x)*(plm.x-pl.x);
+          if(d > 400 && d < 10000){
+            this.ctx.save();
+            angle = 3.1415 + Math.atan2(plm.y-pl.y, plm.x-pl.x);
+            this.ctx.translate(plm.x + (10 * Math.cos(angle))
+                              ,plm.y + (10 * Math.sin(angle)));
+            this.ctx.rotate(angle + (3.1415/4));
+            global_game.ctx.drawImage(img_arrow ,0 ,0 , 3, 3);
+            this.ctx.restore();
+          }
+        }
+    }
         
     this.ctx.drawImage(img_main_f, 100 , 100 , 200, 80);
 
     // STATUS
-    
-
 
     this.ctx.drawImage(img_heart, this.canvas.posx - w/2 + 1 , this.canvas.posy - h/2 + 1, 1, 1);
     this.ctx.drawImage(img_boost, this.canvas.posx - w/2 + 1 , this.canvas.posy - h/2 + 2.5, 1, 1);
-    //this.ctx.clearRect(this.canvas.posx - w/2 + 3,this.canvas.posy - h/2 + 1,12,1);\
+    this.ctx.drawImage(img_ammu, this.canvas.posx - w/2 + 1 , this.canvas.posy - h/2 + 4, 1, 1);
+
     this.ctx.fillStyle="#f10400";
     this.ctx.fillRect(this.canvas.posx - w/2 + 2.5,this.canvas.posy - h/2 + 1.1 ,10 * (global_game.health / 100),0.8)
 
@@ -389,71 +516,240 @@ game.prototype.redraw_world = function()
     this.ctx.rect(this.canvas.posx - w/2 + 2.5,this.canvas.posy - h/2 + 2.6 ,10,0.8);  
     this.ctx.stroke();
 
+    this.ctx.fillStyle="#1d1d1b";
+    this.ctx.fillRect(this.canvas.posx - w/2 + 2.5,this.canvas.posy - h/2 + 4.1 ,10 * (global_game.ammunition / 100),0.8)
+
+    this.ctx.beginPath();
+    this.ctx.lineWidth = "0.1";
+    this.ctx.strokeStyle = "#1d1d1b";
+    this.ctx.rect(this.canvas.posx - w/2 + 2.5,this.canvas.posy - h/2 + 4.1 ,10,0.8);  
+    this.ctx.stroke();
+
+    write_text({x : this.canvas.posx - w/2 + 2.5, y : this.canvas.posy - h/2 + 6 , font : 'bold 0.9px Arial' , color : "#1d1d1b" , text : String(Math.round(global_game.gun.adetails.rpc * global_game.ammunition / 100)) + "/" + String(global_game.gun.adetails.c), ctx : this.ctx});
+
+    if(global_game.gun.adetails.c <= 0 && global_game.ammunition <= 0){
+        write_text({x : this.canvas.posx - w/2 + 2.5 + 10, y : this.canvas.posy - h/2 + 6 , font : 'bold 0.9px Arial' , color : "red" , text : "NO AMMO", ctx : this.ctx, align : "right"});
+    }else if(lsh == 1){
+        write_text({x : this.canvas.posx - w/2 + 2.5 + 10, y : this.canvas.posy - h/2 + 6 , font : 'bold 0.9px Arial' , color : "#1d1d1b" , text : "RELOADING", ctx : this.ctx, align : "right"});
+    }
+    if(messages.length > lmid){
+      write_text({x : this.canvas.posx, y : this.canvas.posy + h/2.5 , font : 'bold 1.4px Arial' , color : 'red' , text : messages[lmid], ctx : this.ctx, align : "center"});
+      
+      if(lmv == 0){
+        lmv = 1;
+        lastm = this.time_elapsed;
+      }
+
+      if(lmv == 1 && this.time_elapsed-lastm > 180){
+      lmid++;
+      lmv = 0;
+      }
+
+    }
+
+    if(dmv == 1){
+    t = (global_game.time_elapsed-dmt)/60;
+    write_text({x : this.canvas.posx, y : this.canvas.posy - 3 , font : 'bold 3px Arial' , color : 'red' , text : "You died", ctx : this.ctx, align : "center"});
+    write_text({x : this.canvas.posx, y : this.canvas.posy , font : 'bold 2px Arial' , color : 'red' , text : "Resurrection in " + Math.round(10 - t) + " seconds", ctx : this.ctx, align : "center"});
+    }
 }
 
-game.prototype.tick = function(cnt)
-{
+game.prototype.tick = function(cnt) {
     var target_x = 0;
     var target_y = 0;
     target_x = this.player.body.GetPosition().x + 2 * Math.cos(global_game.gun.body.GetAngle());
     target_y = this.player.body.GetPosition().y + 2 * Math.sin(global_game.gun.body.GetAngle());
-
-    this.ctx.translate(this.canvas.posx-target_x,this.canvas.posy-target_y);
-
+    if(global_game.player.died){
+          target_x = this.canvas.posx;
+          target_y = this.canvas.posy;
+      }
+    
+    this.ctx.translate(this.canvas.posx - target_x, this.canvas.posy - target_y);
+    
     this.canvas.posx = target_x;
     this.canvas.posy = target_y;
-
     this.key_down();
     this.key_up();
-
-    if(!this.is_paused && this.on)
-    {
+    if (!this.is_paused && this.on) {
         this.time_elapsed += 1;
-
-        for(var i in this.game_objects)
-          {
-            if(this.game_objects[i].dead == true)
-            {
-              delete this.game_objects[i];
-              continue;
+        for (var i in this.game_objects) {
+            if (this.game_objects[i].dead == true) {
+                delete this.game_objects[i];
+                continue;
             }
-            
             this.game_objects[i].tick();
-          }
-        this.perform_destroy();
-
-        this.box2d_world.Step(1/20 , 8 , 3);
-
-        this.box2d_world.ClearForces();
-
-        this.redraw_world();
-        
-        if(!this.is_paused && this.on)
-        {
-            var that = this;
-            this.timer = setTimeout( function() { that.tick(); }  , 1000/this.fps);
         }
+        this.perform_destroy();
+        this.box2d_world.Step(1 / 20, 8, 3);
+        this.box2d_world.ClearForces();
+        this.redraw_world();
+        if (this.time_elapsed % 10) {
+            socketSend();
+        }
+        if (this.time_elapsed % 100 == 0 && global_game.health < 100) {
+            global_game.health++;
+        }
+        if (!this.is_paused && this.on) {
+            var that = this;
+            this.timer = setTimeout(function() {
+                that.tick();
+            }, 1000 / this.fps);
+        }
+    }
+    if(lsh == 1 && global_game.gun.adetails.c > 0 && (global_game.time_elapsed - lst)/60 > global_game.gun.adetails.rldt){
+              lst = global_game.time_elapsed;
+              global_game.ammunition = 100;
+              global_game.gun.adetails.c-=1;
+              lsh = 0;
     }
 }
 
 game.prototype.perform_destroy = function()
-{
-  for(var i in this.to_destroy)
   {
-    this.to_destroy[i].destroy();
+    for(var i in this.to_destroy)
+    {
+      this.to_destroy[i].destroy();
+    }
   }
-}
 
 
 game.prototype.get_offset = function(vector)
-{
-    return new b2Vec2(vector.x - 0, Math.abs(vector.y - this.screen_height));
-}
+  {
+      return new b2Vec2(vector.x - 0, Math.abs(vector.y - this.screen_height));
+  }
 
 game.prototype.destroy_object = function(obj)
-{
-  this.to_destroy.push(obj);
-}
+  {
+    this.to_destroy.push(obj);
+  }
+
+game.prototype.start_handling = function()
+  {
+      var that = this;
+      
+      $(document).on('keydown.game' , function(e)
+      {
+          global_game.keys[e.keyCode] = e.type == 'keydown';
+          that.key_down();
+          return false;
+      });
+      
+      $(document).on('keyup.game' ,function(e)
+      {
+          global_game.keys[e.keyCode] = e.type == 'keydown';
+          that.key_up();
+          return false;
+      });
+  }
+
+lst = 0;
+lsh = 0;
+
+game.prototype.key_down = function()
+  {
+      if(global_game.player.died){return;}
+      if(global_game.keys[37] || global_game.keys[65] )
+      {
+          this.player.do_move_left = true;
+      }
+
+      if(global_game.keys[38]  || global_game.keys[87] )
+      {
+          this.player.do_move_up = true;
+      }
+
+      if(global_game.keys[39]  || global_game.keys[68] )
+      {
+          this.player.do_move_right = true;
+      }
+      if(global_game.keys[32] )
+      {
+          if(global_game.ammunition > 0 && lsh == 0 && ((global_game.time_elapsed - lst)/60) > (60/global_game.gun.adetails.rpm)){
+            global_game.gun.shoot();
+            global_game.ammunition-=(100/global_game.gun.adetails.rpc);
+            lst = global_game.time_elapsed;
+          }
+
+          if(global_game.ammunition <= 0){
+            global_game.ammunition = 0;
+
+            if(lsh == 0){
+              lst = global_game.time_elapsed;
+              lsh = 1;
+            }
+            if(lsh == 1 && global_game.gun.adetails.c > 0 && (global_game.time_elapsed - lst)/60 > global_game.gun.adetails.rldt){
+              lst = global_game.time_elapsed;
+              global_game.ammunition = 100;
+              global_game.gun.adetails.c-=1;
+              lsh = 0;
+            }
+          }
+      }
+
+  }
+
+game.prototype.key_up = function()
+  {
+      if(global_game.player.died){return;}
+      if(!global_game.keys[38]  && !global_game.keys[87] )
+      {
+          this.player.do_move_up = false;
+      }
+
+      if(!global_game.keys[37] && !global_game.keys[65] )
+      {
+          this.player.do_move_left = false;
+      }
+
+      if(!global_game.keys[39]  && !global_game.keys[68] )
+      {
+          this.player.do_move_right = false;
+      }
+  }
+
+game.prototype.setup_collision_handler = function()
+  {
+    var that = this;
+
+    b2ContactListener.prototype.BeginContact = function (contact) 
+    {
+
+      var a = contact.GetFixtureA().GetUserData();
+      var b = contact.GetFixtureB().GetUserData();
+      if(a instanceof Body && b instanceof Body)
+      {
+        if (a.tp == "bullet" && b.tp == "bullet"){that.destroy_object(a);}
+        else if(a.tp == "bullet"){that.destroy_object(a);}
+        else if(b.tp == "bullet"){that.destroy_object(b);}
+      }
+
+      else if(a instanceof Body && ( b instanceof player ||  b instanceof gun )){
+        if(a.tp == "bullet"){that.destroy_object(a);
+          if(b.m && global_game.health > 0 && !a.mp){
+            global_game.health--;
+            if(global_game.health < 5){
+              global_game.player.dieded(a.name);
+            }
+          }
+        }else if(a.tp == "dend"){
+          global_game.player.sudieded();
+        }
+      }
+
+      else if(b instanceof Body && ( a instanceof player ||  a instanceof gun )){
+        if(b.tp == "bullet"){that.destroy_object(b);
+          if(a.m && global_game.health > 0 && !b.mp){
+            global_game.health--;
+            if(global_game.health < 5){
+              global_game.player.dieded(b.name);
+            }
+          }
+        }else if(b.tp == "dend"){
+          global_game.player.sudieded();
+        } 
+      }
+    }
+  }
 
 // BODY
 
@@ -463,15 +759,16 @@ var Body = window.Body = function(physics,details) {
     this.definition = new b2BodyDef();
     this.age = 0;
     this.tp = "wall";
+
     for(var k in this.definitionDefaults) {
       this.definition[k] = details[k] || this.definitionDefaults[k];
     }
+
     this.definition.position = new b2Vec2(details.x || 0, details.y || 0);
     this.definition.linearVelocity = new b2Vec2(details.vx || 0, details.vy || 0);
     this.definition.userData = this;
     this.definition.type = details.type == "static" ? b2Body.b2_staticBody :
                                                       b2Body.b2_dynamicBody;
-
 
     this.body = physics.world.CreateBody(this.definition);
 
@@ -481,7 +778,6 @@ var Body = window.Body = function(physics,details) {
     for(var l in this.fixtureDefaults) {
       this.fixtureDef[l] = details[l] || this.fixtureDefaults[l];
     }
-
 
     details.shape = details.shape || this.defaults.shape;
 
@@ -508,40 +804,37 @@ var Body = window.Body = function(physics,details) {
     this.body.CreateFixture(this.fixtureDef);
   };
 
-
-  Body.prototype.defaults = {
+Body.prototype.defaults = {
     shape: "block",
     width: 4,
     height: 4,
     radius: 1
   };
 
-  Body.prototype.fixtureDefaults = {
+Body.prototype.fixtureDefaults = {
     density: 0,
     friction: 2,
     restitution: 0.2
   };
 
-  Body.prototype.definitionDefaults = {
+Body.prototype.definitionDefaults = {
     active: true,
     allowSleep: true,
     angle: 0,
     angularVelocity: 0,
     awake: true,
-    bullet: false,
+    bullet: true,
     fixedRotation: false
   };
 
-
-  Body.prototype.draw = function(context) {
-    if(this.body == null || this.tp == "nodraw"){return;}
+Body.prototype.draw = function(context) {
+    if(this.body == null || this.tp == "nodraw" || this.tp == "dend"){return;}
     var pos = this.body.GetPosition(),
         angle = this.body.GetAngle();
 
     context.save();
     context.translate(pos.x,pos.y);
     context.rotate(angle);
-
 
     if(this.details.color) {
       context.fillStyle = this.details.color;
@@ -581,125 +874,42 @@ var Body = window.Body = function(physics,details) {
     }
     context.translate(-pos.x,-pos.y);
     context.restore();
-
   }
 
-  Body.prototype.tick = function()
-{
-    this.age++;
-}
+Body.prototype.tick = function()
+  {
+      this.age++;
+  }
 
 Body.prototype.add_velocity = function(vel)
-{
-    var b = this.body;
-    var v = b.GetLinearVelocity();
-    
-    v.Add(vel);
-    
-    if(Math.abs(v.y) > this.max_ver_vel)
-    {
-        v.y = this.max_ver_vel * v.y/Math.abs(v.y);
-    }
-    
-    if(Math.abs(v.x) > this.max_hor_vel)
-    {
-        v.x = this.max_hor_vel * v.x/Math.abs(v.x);
-    }
+  {
+      var b = this.body;
+      var v = b.GetLinearVelocity();
+      
+      v.Add(vel);
+      
+      if(Math.abs(v.y) > this.max_ver_vel){
+          v.y = this.max_ver_vel * v.y/Math.abs(v.y);
+      }
+      
+      if(Math.abs(v.x) > this.max_hor_vel){
+          v.x = this.max_hor_vel * v.x/Math.abs(v.x);
+      }
 
-    b.SetLinearVelocity(v);
-}
+      b.SetLinearVelocity(v);
+  }
 
 Body.prototype.destroy = function()
-{
-  if(this.body == null)
   {
-    return;
+    if(this.body == null)
+    {
+      return;
+    }
+    this.body.GetWorld().DestroyBody( this.body );
+    this.body = null;
+    this.dead = true;
   }
-  this.body.GetWorld().DestroyBody( this.body );
-  this.body = null;
-  this.dead = true;
-}
 
-
-  game.prototype.start_handling = function()
-{
-    var that = this;
-    
-    $(document).on('keydown.game' , function(e)
-    {
-        global_game.keys[e.keyCode] = e.type == 'keydown';
-        that.key_down();
-        return false;
-    });
-    
-    $(document).on('keyup.game' ,function(e)
-    {
-        global_game.keys[e.keyCode] = e.type == 'keydown';
-        that.key_up();
-        return false;
-    });
-
-
-}
-
-game.prototype.key_down = function()
-{
-
-    if(global_game.keys[37] || global_game.keys[65] )
-    {
-        this.player.do_move_left = true;
-    }
-
-    if(global_game.keys[38]  || global_game.keys[87] )
-    {
-        this.player.do_move_up = true;
-    }
-
-    if(global_game.keys[39]  || global_game.keys[68] )
-    {
-        this.player.do_move_right = true;
-    }
-    if(global_game.keys[32] )
-    {
-        global_game.gun.shoot();
-    }
-
-}
-
-game.prototype.key_up = function()
-{
-    if(!global_game.keys[38]  && !global_game.keys[87] )
-    {
-        this.player.do_move_up = false;
-    }
-
-    if(!global_game.keys[37] && !global_game.keys[65] )
-    {
-        this.player.do_move_left = false;
-    }
-
-    if(!global_game.keys[39]  && !global_game.keys[68] )
-    {
-        this.player.do_move_right = false;
-    }
-}
-
-game.prototype.setup_collision_handler = function()
-{
-  var that = this;
-
-  b2ContactListener.prototype.BeginContact = function (contact) 
-  {
-
-    var a = contact.GetFixtureA().GetUserData();
-    var b = contact.GetFixtureB().GetUserData();
-    if(a instanceof Body && b instanceof Body)
-    {
-      if(a.tp == "bullet"){that.destroy_object(a);}
-      else if(b.tp == "bullet"){that.destroy_object(b);}
-    }
-  }
-}
 
 // PLAYER
 
@@ -707,6 +917,7 @@ var player = function(physics,details) {
     this.details = details = details || {};
 
     this.definition = new b2BodyDef();
+    this.died = false;
 
     for(var k in this.definitionDefaults) {
       this.definition[k] = details[k] || this.definitionDefaults[k];
@@ -718,8 +929,8 @@ var player = function(physics,details) {
                                                       b2Body.b2_dynamicBody;
 
     this.body = physics.world.CreateBody(this.definition);
-
     this.fixtureDef = new b2FixtureDef();
+    this.fixtureDef.userData = this;
     for(var l in this.fixtureDefaults) {
       this.fixtureDef[l] = details[l] || this.fixtureDefaults[l];
     }
@@ -756,21 +967,20 @@ var player = function(physics,details) {
     this.body.CreateFixture(this.fixtureDef);
   };
 
-
-  player.prototype.defaults = {
+player.prototype.defaults = {
     shape: "block",
     width: 4,
     height: 4,
     radius: 1
   };
 
-  player.prototype.fixtureDefaults = {
-    density: 2,
+player.prototype.fixtureDefaults = {
+    density: 2000,
     friction: 0.2,
     restitution: 0.2
   };
 
-  player.prototype.definitionDefaults = {
+player.prototype.definitionDefaults = {
     active: true,
     allowSleep: true,
     angle: 0,
@@ -780,15 +990,14 @@ var player = function(physics,details) {
     fixedRotation: true
   };
 
-
-  player.prototype.draw = function(context) {
+player.prototype.draw = function(context) {
+  if(this.died){return;}
     var pos = this.body.GetPosition(),
         angle = this.body.GetAngle();
 
     context.save();
     context.translate(pos.x,pos.y);
     context.rotate(angle);
-
 
     if(this.details.color) {
       context.fillStyle = this.details.color;
@@ -829,31 +1038,72 @@ var player = function(physics,details) {
     context.restore();
   }
 
+var dmv = 0;
+var dmt = 0;
 player.prototype.tick = function()
-{    
-    if(this.do_move_left)
-    {
-        this.add_velocity(new b2Vec2(-1,0));
-    }
-    
-    if(this.do_move_right)
-    {
-        this.add_velocity(new b2Vec2(1,0));
-    }
-    
-    if(this.do_move_up)
-    {
-        
-        this.add_velocity(new b2Vec2(0,-0.2));
-    }
+  {    
+      if(this.do_move_left)
+      {
+          this.add_velocity(new b2Vec2(-1,0));
+      }
+      
+      if(this.do_move_right)
+      {
+          this.add_velocity(new b2Vec2(1,0));
+      }
+      
+      if(this.do_move_up)
+      {
+          if(global_game.booster > 0){
+          this.add_velocity(new b2Vec2(0,-0.2));
+          global_game.booster-=0.2;
+          }
+      }else if(this.age % 20 == 0 && global_game.booster < 100){
+        global_game.booster++;
+      }
 
-    if(this.body.GetLinearVelocity().y <= 0.1 && Math.abs(this.body.GetAngle()) > 0.5){
-      this.body.SetAngle(0);
-      this.body.SetAngularVelocity(0);
-    }
-    
-    this.age++;
-}
+      if(this.body.GetLinearVelocity().y <= 0.1 && Math.abs(this.body.GetAngle()) > 0.5){
+        this.body.SetAngle(0);
+        this.body.SetAngularVelocity(0);
+      }
+
+      if(this.died){
+        
+        if(dmv == 0){
+          dmv = 1;
+          dmt = global_game.time_elapsed;
+          global_game.player.body.SetPosition(new b2Vec2(10, 10));
+          global_game.socket.emit('game', {name : global_game.name, plposx : 10,  plposy : 10, gunang: 0, bull: 0}); 
+        }
+
+        if(dmv == 1 && global_game.time_elapsed-dmt > 600){
+        this.died = false;
+        global_game.health = 100;
+        global_game.booster = 100;
+        dmv = 0;
+
+        spawnloc = [[115, 100],
+                [115, 130],
+                [110, 160],
+                [150, 160],
+                [170, 120],
+                [245, 110],
+                [245, 140],
+                [230, 165],
+                [275, 165]]
+
+          loc = spawnloc[Math.floor(Math.random()*spawnloc.length)];
+          global_game.player.body.SetPosition(new b2Vec2(loc[0], loc[1]));
+          global_game.player.body.SetLinearVelocity(new b2Vec2(0,0));
+          lastmess = 0;
+          socketSend();
+
+        }
+
+      }
+      
+      this.age++;
+  }
 
 player.prototype.add_velocity = function(vel)
 {
@@ -875,6 +1125,19 @@ player.prototype.add_velocity = function(vel)
     b.SetLinearVelocity(v);
 }
 
+player.prototype.dieded = function(killer)
+{
+  socketMessage(killer +" killed "+global_game.name);
+  this.died = true;
+}
+
+player.prototype.sudieded = function(killer)
+{
+  socketMessage(global_game.name +" committed suicide");
+  this.died = true;
+}
+
+
 
 // GUN
 
@@ -884,6 +1147,15 @@ var gun = function(physics,details) {
     this.definition = new b2BodyDef();
     this.age = 0;
     this.showshoot = 0;
+    this.bull = 0;
+    this.adetails = {
+      rpm : 360,
+      rpc : 80,
+      c : 10,
+      damage : 10,
+      vel: 50,
+      rldt: 2
+    }
 
     for(var k in this.definitionDefaults) {
       this.definition[k] = details[k] || this.definitionDefaults[k];
@@ -903,6 +1175,7 @@ var gun = function(physics,details) {
     this.body = physics.world.CreateBody(this.definition);
 
     this.fixtureDef = new b2FixtureDef();
+    this.fixtureDef.userData = this;
     for(var l in this.fixtureDefaults) {
       this.fixtureDef[l] = details[l] || this.fixtureDefaults[l];
     }
@@ -959,6 +1232,7 @@ var gun = function(physics,details) {
 
 
   gun.prototype.draw = function(context) {
+    if(global_game.player.died){return;}
     var pos = this.body.GetPosition(),
         angle = this.body.GetAngle();
 
@@ -1006,42 +1280,200 @@ var gun = function(physics,details) {
     context.restore();
   }
 
-  gun.prototype.tick = function()
-{
+var pmx = 0;
+var pmy = 0;
 
-  
-    $(canvas).mousemove(function(e) 
-    {
-
-
-        scale = global_game.scale * 1.318;
-        var pl = global_game.player.body.GetPosition();
-        player_x = (pl.x - global_game.canvas.posx + global_game.canvas.w) * scale;
-        player_y = (pl.y - global_game.canvas.posy + global_game.canvas.h) * scale;
-        this.diffx = player_x-e.pageX;
-        this.diffy = player_y-e.pageY;
-        //this.diffx = (global_game.canvas_width * (1.318/2))-e.pageX;
-        //this.diffy = (global_game.canvas_height * (1.318/2))-e.pageY;
-        if(this.diffx > 0){
-            global_game.gun.details.image = global_game.gun.details.image1;
-        }else{
-            global_game.gun.details.image = global_game.gun.details.image2;
+gun.prototype.tick = function()
+  {
+      $(canvas).mousemove(function(e) 
+      {
+          if((pmx == 0 && pmy == 0) || (Math.abs(pmx-e.pageX)) > 10 || (Math.abs(pmy-e.pageY)) > 10 ){
+            pmx = e.pageX;
+            pmy = e.pageY;
+          scale = global_game.scale * (1/resolution);
+          var pl = global_game.player.body.GetPosition();
+          player_x = (pl.x - global_game.canvas.posx + global_game.canvas.w) * scale;
+          player_y = (pl.y - global_game.canvas.posy + global_game.canvas.h) * scale;
+          this.diffx = player_x-e.pageX;
+          this.diffy = player_y-e.pageY;
+          //this.diffx = (global_game.canvas_width * (1.318/2))-e.pageX;
+          //this.diffy = (global_game.canvas_height * (1.318/2))-e.pageY;
+          if(this.diffx > 0){
+              global_game.gun.details.image = global_game.gun.details.image1;
+          }else{
+              global_game.gun.details.image = global_game.gun.details.image2;
+          }
+          global_game.gun.body.SetAngle(3.1415 + Math.atan2(this.diffy,this.diffx));
+          
+          this.age++;
         }
-        global_game.gun.body.SetAngle(3.1415 + Math.atan2(this.diffy,this.diffx));
-        
-        this.age++;
-    });    
-}
+      });    
+  }
 
- gun.prototype.shoot = function()
-{
-    var pl = global_game.player.body.GetPosition();
-    var angle = global_game.gun.body.GetAngle() + (Math.random() - 0.5) * 0.05;
-    this.bullet = new Body(global_game, { image: img_res('bullet.png'), x: pl.x + (4 * Math.cos(angle)), y: pl.y + (4 * Math.sin(angle)), width: 0.3, height: 0.2});
-    this.bullet.tp = "bullet";
-    this.bullet.body.SetAngle(angle);
-    global_game.game_objects.push(this.bullet);
-    bullvel =50 + Math.random() * 50;
-    this.bullet.add_velocity(new b2Vec2(bullvel * Math.cos(angle),bullvel * Math.sin(angle)));
-    global_game.gun.showshoot = 1;
-}
+gun.prototype.shoot = function()
+  {
+      var pl = global_game.player.body.GetPosition();
+      var angle = global_game.gun.body.GetAngle() + (Math.random() - 0.5) * 0.05;
+      this.bullet = new Body(global_game, { image: img_res('bullet.png'), x: pl.x + (4 * Math.cos(angle)), y: pl.y + (4 * Math.sin(angle)), width: 0.3, height: 0.2});
+      this.bullet.tp = "bullet";
+      this.bullet.mp = true;
+      this.bullet.body.SetAngle(angle);
+      global_game.game_objects.push(this.bullet);
+      bullvel =50 + Math.random() * 50;
+      this.bullet.add_velocity(new b2Vec2(bullvel * Math.cos(angle),bullvel * Math.sin(angle)));
+      global_game.gun.showshoot = 1;
+      this.bull++;
+  }
+
+// OPPONENTS GUN
+
+var ogun = function(physics,details) {
+    this.details = details = details || {};
+
+    this.definition = new b2BodyDef();
+    this.age = 0;
+    this.showshoot = 0;
+
+    for(var k in this.definitionDefaults) {
+      this.definition[k] = details[k] || this.definitionDefaults[k];
+    }
+    this.definition.position = new b2Vec2(details.x || 0, details.y || 0);
+    this.definition.linearVelocity = new b2Vec2(details.vx || 0, details.vy || 0);
+    this.definition.userData = this;
+    
+    
+    this.imgss = img_res('showfire.png');
+    this.definition.type = details.type == "static" ? b2Body.b2_staticBody :
+                                                      b2Body.b2_dynamicBody;
+
+    this.details.image1 = img_res('rgun.png');
+    this.details.image2 = img_res('gun.png');
+
+    this.body = physics.world.CreateBody(this.definition);
+
+    this.fixtureDef = new b2FixtureDef();
+    for(var l in this.fixtureDefaults) {
+      this.fixtureDef[l] = details[l] || this.fixtureDefaults[l];
+    }
+
+
+    details.shape = details.shape || this.defaults.shape;
+
+    switch(details.shape) {
+      case "circle":
+        details.radius = details.radius || this.defaults.radius;
+        this.fixtureDef.shape = new b2CircleShape(details.radius);
+        break;
+      case "polygon":
+        this.fixtureDef.shape = new b2PolygonShape();
+        this.fixtureDef.shape.SetAsArray(details.points,details.points.length);
+        break;
+      case "block":
+      default:
+        details.width = details.width || this.defaults.width;
+        details.height = details.height || this.defaults.height;
+
+        this.fixtureDef.shape = new b2PolygonShape();
+        this.fixtureDef.shape.SetAsBox(details.width/2,
+                                       details.height/2);
+        break;
+    }
+
+    this.body.CreateFixture(this.fixtureDef);
+  };
+
+
+  ogun.prototype.defaults = {
+    shape: "block",
+    width: 4,
+    height: 4,
+    radius: 1
+  };
+
+  ogun.prototype.fixtureDefaults = {
+    density: 0,
+    friction: 2,
+    restitution: 0.2
+  };
+
+  ogun.prototype.definitionDefaults = {
+    active: true,
+    allowSleep: true,
+    angle: 0,
+    angularVelocity: 0,
+    awake: true,
+    bullet: false,
+    fixedRotation: false
+  };
+
+
+  ogun.prototype.draw = function(context) {
+    var pos = this.body.GetPosition(),
+        angle = this.body.GetAngle();
+
+    context.save();
+    context.translate(pos.x,pos.y);
+    context.rotate(angle);
+
+
+    if(this.details.color) {
+      context.fillStyle = this.details.color;
+
+      switch(this.details.shape) {
+        case "circle":
+          context.beginPath();
+          context.arc(0,0,this.details.radius,0,Math.PI*2);
+          context.fill();
+          break;
+        case "polygon":
+          var points = this.details.points;
+          context.beginPath();
+          context.moveTo(points[0].x,points[0].y);
+          for(var i=1;i<points.length;i++) {
+            context.lineTo(points[i].x,points[i].y);
+          }
+          context.fill();
+          break;
+        case "block":
+          context.fillRect(-this.details.width/2,
+                           -this.details.height/2,
+                           this.details.width,
+                           this.details.height);
+        default:
+          break;
+      }
+    }
+
+    if(this.details.image) {
+      context.drawImage(this.details.image,
+                        -this.details.width/2,
+                        -this.details.height/2,
+                        this.details.width,
+                        this.details.height);
+
+    }
+    context.restore();
+  }
+ogun.prototype.tick = function()
+  {
+          if(Math.cos(this.body.GetAngle()) < 0){
+              this.details.image = global_game.gun.details.image1;
+          }else{
+              this.details.image = global_game.gun.details.image2;
+          }
+          this.age++;   
+  }
+
+ogun.prototype.shoot = function(pl, ang)
+  {
+      var angle = ang + (Math.random() - 0.5) * 0.05;
+      this.bullet = new Body(global_game, { image: img_res('bullet.png'), x: pl.x + (4 * Math.cos(angle)), y: pl.y + (4 * Math.sin(angle)), width: 0.3, height: 0.2});
+      this.bullet.tp = "bullet";
+      this.bullet.body.SetAngle(angle);
+      this.bullet.mp = false;
+      global_game.game_objects.push(this.bullet);
+      bullvel =50 + Math.random() * 50;
+      this.bullet.add_velocity(new b2Vec2(bullvel * Math.cos(angle),bullvel * Math.sin(angle)));
+      this.showshoot = 1;
+      this.bullet.name=this.name;
+  }
