@@ -15,7 +15,7 @@ Canvas Of War is an online 2d multiplayer shooting game. The game is built using
 
 ###Usage
 
-- open a browser and go to http://<server-ip>:3000/
+- open a browser and go to http://server-ip:3000/
 - Enter your name
 - Invite your friends, ask them to do the same thing. Enter different names
 - Find your friends by exploring the map
