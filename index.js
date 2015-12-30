@@ -1,3 +1,10 @@
+/*
+ * Canvas Of War
+ * An online 2d multiplayer shooting game
+ * https://github.com/7andahalf/
+ * vinayck.com
+ */
+
 var express = require('express');
 var app = express();
 var http = require('http').Server(app);

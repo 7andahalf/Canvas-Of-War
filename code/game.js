@@ -2,20 +2,182 @@
  * Canvas Of War
  * An online 2d multiplayer shooting game
  * https://github.com/7andahalf/
+ * vinayck.com
  */
 
+//sounds
+var mreload = new Audio('code/media/m3.wav');
+var mbg = new Audio('code/media/mbg.aac');
+var mboost = new Audio('code/media/m5.wav');
+
+
+mbg.play();
+mbg.pause()
+mbg.addEventListener('ended', function() {
+  this.currentTime = 0;
+  this.play();
+}, false);
+
+
+var sound = true;
+var maxvol = 1;
+var volume = maxvol;
+
+function play(a){
+  if(sound){
+    a.volume = volume;
+    a.play();
+  }
+}
+
+function vplay(a,volume){
+  if(sound){
+    a.volume = volume;
+    a.play();
+  }
+}
+// MENU
+$(function() {
+    $( "#slider" ).slider();
+    $( "#slider" ).slider('value',100)
+  });
+// GAME
 var global_game = null;
 var messages = [];
 var resolution = 1;
-$(function() {start_game();});
+var namm = 0;
+var charimg = 1;
+
+function getCookie(cname) {
+    var name = cname + "=";
+    var ca = document.cookie.split(';');
+    for(var i=0; i<ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0)==' ') c = c.substring(1);
+        if (c.indexOf(name) == 0) return c.substring(name.length,c.length);
+    }
+    return "";
+}
+
+$(function() {
+
+    if(getCookie("volume") != ""){
+      volume = 0;
+      sound = false;
+      $("#soundeff").css("background-color", "red");
+    }
+
+    if(getCookie("bgmusic") == ""){
+      mbg.play();
+    }else{
+      $("#music").css("background-color", "red");
+    }
+
+    $("#music").click(function(){
+      if(mbg.paused){
+        mbg.play();
+        $("#music").css("background-color", "#3b2603");
+        document.cookie="bgmusic=; expires=20 Dec 2000 12:00:00 UTC";
+      }else{
+        mbg.pause();
+        $("#music").css("background-color", "red");
+        document.cookie="bgmusic=yes; expires=20 Dec 2020 12:00:00 UTC";
+      }
+    });
+
+    $("#soundeff").click(function(){
+      if(volume == 0){
+        volume = maxvol;
+        sound = true;
+        $("#soundeff").css("background-color", "#3b2603");
+        document.cookie="volume=; expires=20 Dec 2000 12:00:00 UTC";
+      }else{
+        volume = 0;
+        sound = false;
+        $("#soundeff").css("background-color", "red");
+        document.cookie="volume=yes; expires=20 Dec 2020 12:00:00 UTC";
+      }
+    });
+
+
+    if(getCookie("name") != "" && getCookie("res") != "" && getCookie("char") != ""){
+    namm = getCookie("name");
+    charimg = parseInt(getCookie("char"));
+    resolution =  parseFloat(getCookie("res"));
+    $("#menu").remove();
+    start_game();
+    }else{
+        $("#start").click(function(){
+    selected = $("input[type='radio'][name='sport']:checked")
+    if (selected.length != 1) {
+      alert("Select a charecter");
+      return;
+    }
+    charimg = selected.val();
+
+    namm = $('#name').val();
+    if(namm == ''){
+      alert("Enter a name");
+      return;
+    }
+
+    slval = $('#slider').slider("option", "value");
+    resolution = (slval/100);
+    if(resolution < 0.01){resolution=0.01;}
+
+    if ($('#slideThree').is(":checked"))
+      {
+        document.cookie="name="+namm+"; expires=20 Dec 2020 12:00:00 UTC";
+        document.cookie="char="+charimg+"; expires=20 Dec 2020 12:00:00 UTC";
+        document.cookie="res="+resolution+"; expires=20 Dec 2020 12:00:00 UTC";
+      }
+    $("#menu").remove();
+    start_game();
+    });
+    }
+  
+  
+  $("#zoom").click(function(){
+    zoom();
+  });
+
+  $("#delinfo").click(function(){
+    document.cookie="name=; expires=20 Dec 2000 12:00:00 UTC";
+    document.cookie="char=; expires=20 Dec 2000 12:00:00 UTC";
+    document.cookie="res=; expires=20 Dec 2000 12:00:00 UTC";
+    document.cookie="volume=; expires=20 Dec 2000 12:00:00 UTC";
+    document.cookie="bgmusic=; expires=20 Dec 2000 12:00:00 UTC";
+    $("#delinfo").remove();
+  });
+});
+var cz = 2;
+var czi = 0;
+function zoom(){
+  czi++;
+  if(czi > global_game.gun.adetails.zooms.length){
+    czi = 0;
+    cz = 2;
+  }else{
+    cz = global_game.gun.adetails.zooms[czi-1];
+  }
+  $("#zoom").text(String(cz)+"x");
+}
+
+
 
 function start_game() {
+
+if(getCookie("name") == "" || getCookie("res") == "" || getCookie("char") == ""){
+  $("#delinfo").remove();
+}
+
+
     var g = new game();
     global_game = g;
     //$(window).resize(function() {g.resize();});
     g.keys = [];
     g.players = [];
-    g.name = prompt("Please enter your name", "Vinay");
+    g.name = namm;
     g.socket = io();
     socketRecieve();
     socketRecieveMessage();
@@ -39,8 +201,8 @@ function socketRecieve(){
       lastmess = 0;
       socketSend();
 
-      var gplayer = new player(global_game, { image: img_res('man.png'), x: 5, y: 8, width: 2.6 , type: "static", density: 0});
-      gplayer.gun = new ogun(global_game, { image: img_res('gun.png'), x:6, y: 8.5, width: 4 , height: 1.5})
+      var gplayer = new player(global_game, { image: img_res('man'+msg.chim+'.png'), x: 5, y: 8, width: 2.6 , type: "static", density: 0});
+      gplayer.gun = new ogun(global_game, { image: img_res('gun1.png'), x:6, y: 8.5, width: 4 , height: 1.5})
 
       global_game.game_objects.push(gplayer);
       global_game.game_objects.push(gplayer.gun);
@@ -88,7 +250,7 @@ function socketSend(){
 
   if(lastmess == 0 || Math.abs(lastmess.plposx - plx) > 0.1 || Math.abs(lastmess.plposy - ply) > 0.1 || Math.abs(lastmess.gunang - gan) > 0.05 || bull > 0){
     lastmess = {name : global_game.name, plposx : roundd(plx),  plposy : roundd(ply), gunang: rounde(gan), bull: bull};
-    global_game.socket.emit('game', {name : global_game.name, plposx : plx,  plposy : ply, gunang: gan, bull: bull}); 
+    global_game.socket.emit('game', {name : global_game.name, plposx : plx,  plposy : ply, gunang: gan, bull: bull, chim: charimg}); 
     global_game.gun.bull = 0;
   }       
 }
@@ -377,14 +539,14 @@ game.prototype.setup = function()
     //this.player = new player(global_game, { image: img_res('man.png'), x: x + 5, y:y +  8, width: 2.6 });
     //this.gun = new gun(global_game, { image: img_res('gun.png'), x: x + 6, y:y +  8.5, width: 4 , height: 1.5})
 
-    this.player = new player(global_game, { image: img_res('man.png'), x: loc[0], y:loc[1], width: 2.6 });
-    this.gun = new gun(global_game, { image: img_res('gun.png'), x: loc[0]+1, y:loc[1]+0.5, width: 4 , height: 1.5})
+    this.player = new player(global_game, { image: img_res('man'+String(charimg)+'.png'), x: loc[0], y:loc[1], width: 2.6 });
+    this.gun = new gun(global_game, { image: img_res('gun1.png'), x: loc[0]+1, y:loc[1]+0.5, width: 4 , height: 1.5})
+
+    //this.player = new player(global_game, { color: "red", x: 5, y: 8, width: 2.6 });
+    //this.gun = new gun(global_game, {color: "blue", x: loc[0]+1, y:loc[1]+0.5, width: 4 , height: 1.5})
 
     this.player.m = true;
     this.gun.m = true;
-
-    //this.player = new player(global_game, { color: "red", x: 5, y: 8, width: 2.6 });
-    //this.gun = new gun(global_game, {color: "blue", x: x + 6, y:y +  8.5, width: 4 , height: 1.5})
 
     this.game_objects.push(this.player);
     this.game_objects.push(this.gun);
@@ -557,8 +719,8 @@ game.prototype.redraw_world = function()
 game.prototype.tick = function(cnt) {
     var target_x = 0;
     var target_y = 0;
-    target_x = this.player.body.GetPosition().x + 2 * Math.cos(global_game.gun.body.GetAngle());
-    target_y = this.player.body.GetPosition().y + 2 * Math.sin(global_game.gun.body.GetAngle());
+    target_x = this.player.body.GetPosition().x + cz * Math.cos(global_game.gun.body.GetAngle());
+    target_y = this.player.body.GetPosition().y + cz * Math.sin(global_game.gun.body.GetAngle());
     if(global_game.player.died){
           target_x = this.canvas.posx;
           target_y = this.canvas.posy;
@@ -583,12 +745,15 @@ game.prototype.tick = function(cnt) {
         this.box2d_world.Step(1 / 20, 8, 3);
         this.box2d_world.ClearForces();
         this.redraw_world();
+
         if (this.time_elapsed % 10) {
             socketSend();
         }
+
         if (this.time_elapsed % 100 == 0 && global_game.health < 100) {
             global_game.health++;
         }
+
         if (!this.is_paused && this.on) {
             var that = this;
             this.timer = setTimeout(function() {
@@ -623,6 +788,37 @@ game.prototype.destroy_object = function(obj)
     this.to_destroy.push(obj);
   }
 
+var msesht = false;
+lst = 0;
+lsh = 0;
+zkd = 0;
+
+function pershoot(){
+  if(global_game.ammunition > 0 && lsh == 0 && ((global_game.time_elapsed - lst)/60) > (60/global_game.gun.adetails.rpm)){
+            b = new Audio('code/media/m4.wav');
+            vplay(b,0.01);
+            global_game.gun.shoot();
+            global_game.ammunition-=(100/global_game.gun.adetails.rpc);
+            lst = global_game.time_elapsed;
+          }
+
+          if(global_game.ammunition <= 0){
+            global_game.ammunition = 0;
+
+            if(lsh == 0){
+              lst = global_game.time_elapsed;
+              play(mreload);
+              lsh = 1;
+            }
+            if(lsh == 1 && global_game.gun.adetails.c > 0 && (global_game.time_elapsed - lst)/60 > global_game.gun.adetails.rldt){
+              lst = global_game.time_elapsed;
+              global_game.ammunition = 100;
+              global_game.gun.adetails.c-=1;
+              lsh = 0;
+            }
+          }
+}
+
 game.prototype.start_handling = function()
   {
       var that = this;
@@ -640,14 +836,36 @@ game.prototype.start_handling = function()
           that.key_up();
           return false;
       });
+
+      $( "#canvas" ).mousedown(function() {
+        msesht = true;
+      });
+      $( "#canvas" ).mouseup(function() {
+        msesht = false;
+      });
+      $( "#canvas" ).click(function() {
+        pershoot();
+      });
   }
 
-lst = 0;
-lsh = 0;
 
 game.prototype.key_down = function()
   {
       if(global_game.player.died){return;}
+
+      if(global_game.keys[16])
+      {
+          zkd = 1;
+      }
+
+      if(global_game.keys[82] && lsh != 1)
+      {
+          global_game.ammunition = 0;
+          play(mreload);
+          lst = global_game.time_elapsed;
+          lsh = 1;
+      }
+
       if(global_game.keys[37] || global_game.keys[65] )
       {
           this.player.do_move_left = true;
@@ -656,34 +874,18 @@ game.prototype.key_down = function()
       if(global_game.keys[38]  || global_game.keys[87] )
       {
           this.player.do_move_up = true;
+          if(global_game.booster > 5){
+            vplay(mboost,0.2);
+        }
       }
 
       if(global_game.keys[39]  || global_game.keys[68] )
       {
           this.player.do_move_right = true;
       }
-      if(global_game.keys[32] )
+      if(global_game.keys[32] || msesht)
       {
-          if(global_game.ammunition > 0 && lsh == 0 && ((global_game.time_elapsed - lst)/60) > (60/global_game.gun.adetails.rpm)){
-            global_game.gun.shoot();
-            global_game.ammunition-=(100/global_game.gun.adetails.rpc);
-            lst = global_game.time_elapsed;
-          }
-
-          if(global_game.ammunition <= 0){
-            global_game.ammunition = 0;
-
-            if(lsh == 0){
-              lst = global_game.time_elapsed;
-              lsh = 1;
-            }
-            if(lsh == 1 && global_game.gun.adetails.c > 0 && (global_game.time_elapsed - lst)/60 > global_game.gun.adetails.rldt){
-              lst = global_game.time_elapsed;
-              global_game.ammunition = 100;
-              global_game.gun.adetails.c-=1;
-              lsh = 0;
-            }
-          }
+          pershoot();
       }
 
   }
@@ -691,9 +893,17 @@ game.prototype.key_down = function()
 game.prototype.key_up = function()
   {
       if(global_game.player.died){return;}
+
+      if(!global_game.keys[16] && zkd == 1)
+      {
+          zoom();
+          zkd = 0;
+      }
+
       if(!global_game.keys[38]  && !global_game.keys[87] )
       {
           this.player.do_move_up = false;
+          mboost.pause();
       }
 
       if(!global_game.keys[37] && !global_game.keys[65] )
@@ -731,7 +941,7 @@ game.prototype.setup_collision_handler = function()
               global_game.player.dieded(a.name);
             }
           }
-        }else if(a.tp == "dend"){
+        }else if(a.tp == "dend" && !global_game.player.died){
           global_game.player.sudieded();
         }
       }
@@ -744,7 +954,7 @@ game.prototype.setup_collision_handler = function()
               global_game.player.dieded(b.name);
             }
           }
-        }else if(b.tp == "dend"){
+        }else if(b.tp == "dend" && !global_game.player.died){
           global_game.player.sudieded();
         } 
       }
@@ -1057,6 +1267,8 @@ player.prototype.tick = function()
           if(global_game.booster > 0){
           this.add_velocity(new b2Vec2(0,-0.2));
           global_game.booster-=0.2;
+          }else{
+            mboost.pause();
           }
       }else if(this.age % 20 == 0 && global_game.booster < 100){
         global_game.booster++;
@@ -1073,7 +1285,7 @@ player.prototype.tick = function()
           dmv = 1;
           dmt = global_game.time_elapsed;
           global_game.player.body.SetPosition(new b2Vec2(10, 10));
-          global_game.socket.emit('game', {name : global_game.name, plposx : 10,  plposy : 10, gunang: 0, bull: 0}); 
+          global_game.socket.emit('game', {name : global_game.name, plposx : 10,  plposy : 10, gunang: 0, bull: 0, chim: charimg}); 
         }
 
         if(dmv == 1 && global_game.time_elapsed-dmt > 600){
@@ -1149,12 +1361,14 @@ var gun = function(physics,details) {
     this.showshoot = 0;
     this.bull = 0;
     this.adetails = {
-      rpm : 360,
+      rpm : 720,
       rpc : 80,
+      accuracy: 0.5,
       c : 10,
       damage : 10,
       vel: 50,
-      rldt: 2
+      rldt: 2,
+      zooms: [3,5,10,15]
     }
 
     for(var k in this.definitionDefaults) {
@@ -1169,8 +1383,8 @@ var gun = function(physics,details) {
     this.definition.type = details.type == "static" ? b2Body.b2_staticBody :
                                                       b2Body.b2_dynamicBody;
 
-    this.details.image1 = img_res('rgun.png');
-    this.details.image2 = img_res('gun.png');
+    this.details.image1 = img_res('rgun1.png');
+    this.details.image2 = img_res('gun1.png');
 
     this.body = physics.world.CreateBody(this.definition);
 
@@ -1346,8 +1560,8 @@ var ogun = function(physics,details) {
     this.definition.type = details.type == "static" ? b2Body.b2_staticBody :
                                                       b2Body.b2_dynamicBody;
 
-    this.details.image1 = img_res('rgun.png');
-    this.details.image2 = img_res('gun.png');
+    this.details.image1 = img_res('rgun1.png');
+    this.details.image2 = img_res('gun1.png');
 
     this.body = physics.world.CreateBody(this.definition);
 

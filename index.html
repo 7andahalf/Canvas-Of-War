@@ -1,3 +1,12 @@
+<!--
+/*
+ * Canvas Of War
+ * An online 2d multiplayer shooting game
+ * https://github.com/7andahalf/
+ * vinayck.com
+ */
+-->
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -6,21 +15,479 @@
     <script src="code/lib/jquery-1.7.1.min.js"></script>
     <script src="code/lib/Box2dWeb-2.1.a.3.min.js"></script>
     <script src="code/lib/socketio.js"></script>
+    <script src="code/lib/jquery-ui.min.js"></script>
     <script src="code/init.js"></script>
     <script src="code/box2d.js"></script>
     <script src="code/game.js"></script>
+    <link rel="stylesheet" href="code/lib/jquery-ui.css">
     <style>
+    @import url(https://fonts.googleapis.com/css?family=Open+Sans);
 	    * 
 	    {
 	        margin:0;
 	        padding:0;
-	        cursor:url("code/media/cursor.png"), auto;
+	        cursor:url("code/media/cursor.png") 24 24, auto;
 	    }
+        #zoom {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            height: 60px;
+            width: 60px;
+            cursor: pointer;
+            border: none;
+            color: white;
+            font-size: 20px;
+            background-color: #3b2603;
+        }
+
+        #zoom:hover {
+            background-color: #845302;
+        }
+        #menu{
+            z-index: 10;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            padding-top: 50px;
+            padding-bottom: 50px;
+            background-color: #0f9cd6;
+            text-align: center;
+        }
+        #menu #main{
+            position: relative;
+            top: 10%;
+            bottom: 10%;
+            width: 700px;
+            margin: 0 auto;
+            background-color: white;
+            -webkit-box-shadow: 0px 0px 84px -4px rgba(0,0,0,0.75);
+            -moz-box-shadow: 0px 0px 84px -4px rgba(0,0,0,0.75);
+            box-shadow: 0px 0px 84px -4px rgba(0,0,0,0.75);
+        }
+
+        #start {
+          padding: 19px 39px 18px 39px;
+          color: #FFF;
+          background-color: #4bc970;
+          font-size: 20px;
+          text-align: center;
+          font-style: normal;
+          border-radius: 5px;
+          border: 1px solid #3ac162;
+          border-width: 1px 1px 3px;
+          box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.1) inset;
+          margin-bottom: 40px;
+          width: 500px;
+        }
+        #start:hover {
+            background-image: url("code/media/bgbtn.png");
+            cursor: pointer;
+        }
+        input[type="text"]{
+          background: rgba(255, 255, 255, 0.1);
+          border: none;
+          font-size: 16px;
+          height: auto;
+          margin: 0;
+          outline: 0;
+          padding: 15px;
+          background-color: #e8eeef;
+          color: #263919;
+          box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03) inset;
+          margin-bottom: 30px;
+          cursor: text;
+          width: 470px;
+        }
+
+        p{
+            font-family: 'Open Sans', sans-serif;
+            padding-bottom: 20px;
+        }
+
+        
+        .sports-switch-input {
+          display: none;
+        }
+
+        .sports-switch-label {
+          cursor: pointer;
+          float: left;
+          width: 100px;
+          height: 120px;
+          margin-left: 10px;
+          color: #434248;
+          text-align: center;
+          cursor: pointer;
+          background: white;
+          border-radius: 2px;
+          border: 10px;
+        }
+        .sports-switch-label img{
+            cursor: pointer;
+            padding-top: 15px;
+        }
+
+        .sports-switch-label svg{
+          height: 80px;
+          margin-top: 10px;
+        }
+        .sports-switch-input:checked + .sports-switch-label  svg path{
+          fill: white;
+        }
+        .sports-switch-input:checked + .sports-switch-label  svg polygon{
+          fill: white;
+        }
+        .sports-switch-input:checked + .sports-switch-label  svg circle{
+          fill: white;
+        }
+        .sports-switch-input:checked + .sports-switch-label  svg ellipse{
+          fill: white;
+        }
+
+        .sports-switch-input:checked + .sports-switch-label {
+          font-weight: 500;
+          color: white;
+          margin-left: 10px;
+          text-shadow: 0 1px rgba(0, 0, 0, 0.2);
+          background: #5fcf80;
+          border-radius: 2px;
+          -webkit-box-shadow: 0 1px 1px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 1px 1px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.1);
+        }
+
+        .check{
+          position: absolute;
+          z-index: 0;
+          top: -5px;
+          right: 5px;
+          height: 20px !important;
+        }
+
+        .check path{
+          fill: white !important;
+        }
+
+        #charpicker{
+            width: 500px;
+            margin-left: 120px;
+        }
+
+        #res{
+            margin-top: 270px;
+            width: 500px;
+            margin-left: 100px;
+        }
+        #svinfo{
+            width: 500px;
+            margin-left: 100px;
+        }
+        h2 {
+             font-family: 'Open Sans', sans-serif;
+        }
+        input[type=checkbox] {
+            visibility: hidden;
+        }
+            .slideThree {
+                width: 80px;
+                height: 26px;
+                background: #333;
+                margin: 20px auto;
+
+                -webkit-border-radius: 50px;
+                -moz-border-radius: 50px;
+                border-radius: 50px;
+                position: relative;
+
+                -webkit-box-shadow: inset 0px 1px 1px rgba(0,0,0,0.5), 0px 1px 0px rgba(255,255,255,0.2);
+                -moz-box-shadow: inset 0px 1px 1px rgba(0,0,0,0.5), 0px 1px 0px rgba(255,255,255,0.2);
+                box-shadow: inset 0px 1px 1px rgba(0,0,0,0.5), 0px 1px 0px rgba(255,255,255,0.2);
+            }
+
+            .slideThree:after {
+                content: 'OFF';
+                font: 12px/26px Arial, sans-serif;
+                color: #000;
+                position: absolute;
+                right: 10px;
+                z-index: 0;
+                font-weight: bold;
+                text-shadow: 1px 1px 0px rgba(255,255,255,.15);
+            }
+
+            .slideThree:before {
+                content: 'ON';
+                font: 12px/26px Arial, sans-serif;
+                color: #00bf00;
+                position: absolute;
+                left: 10px;
+                z-index: 0;
+                font-weight: bold;
+            }
+
+            .slideThree label {
+                display: block;
+                width: 34px;
+                height: 20px;
+
+                -webkit-border-radius: 50px;
+                -moz-border-radius: 50px;
+                border-radius: 50px;
+
+                -webkit-transition: all .4s ease;
+                -moz-transition: all .4s ease;
+                -o-transition: all .4s ease;
+                -ms-transition: all .4s ease;
+                transition: all .4s ease;
+                cursor: pointer;
+                position: absolute;
+                top: 3px;
+                left: 3px;
+                z-index: 1;
+
+                -webkit-box-shadow: 0px 2px 5px 0px rgba(0,0,0,0.3);
+                -moz-box-shadow: 0px 2px 5px 0px rgba(0,0,0,0.3);
+                box-shadow: 0px 2px 5px 0px rgba(0,0,0,0.3);
+                background: #fcfff4;
+
+                background: -webkit-linear-gradient(top, #fcfff4 0%, #dfe5d7 40%, #b3bead 100%);
+                background: -moz-linear-gradient(top, #fcfff4 0%, #dfe5d7 40%, #b3bead 100%);
+                background: -o-linear-gradient(top, #fcfff4 0%, #dfe5d7 40%, #b3bead 100%);
+                background: -ms-linear-gradient(top, #fcfff4 0%, #dfe5d7 40%, #b3bead 100%);
+                background: linear-gradient(top, #fcfff4 0%, #dfe5d7 40%, #b3bead 100%);
+                filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfff4', endColorstr='#b3bead',GradientType=0 );
+            }
+
+            .slideThree input[type=checkbox]:checked + label {
+                left: 43px;
+            }
+
+                #delinfo svg, #music svg, #soundeff svg{
+                  height: 40px;
+                  cursor: pointer;
+                }
+
+                #delinfo  svg path, #music svg path, #soundeff svg path{
+                  fill: white;
+                  cursor: pointer;
+                }soundeff
+                #delinfo  svg polygon, #soundeff svg polygon{
+                  fill: white;
+                  cursor: pointer;
+                }
+                #delinfo  svg circle{
+                  fill: white;
+                  cursor: pointer;
+                }
+                #delinfo  svg ellipse{
+                  fill: white;
+                  cursor: pointer;
+                }
+
+                #delinfo {
+                    position: absolute;
+                    bottom: 20px;
+                    right: 20px;
+                    height: 60px;
+                    width: 60px;
+                    cursor: pointer !important;
+                    border: none;
+                    color: white;
+                    font-size: 20px;
+                    background-color: #3b2603;
+                }
+
+                #delinfo:hover {
+                    background-color: #845302;
+                }
+
+                 #music {
+                    position: fixed;
+                    top: 20px;
+                    right: 180px;
+                    height: 60px;
+                    width: 60px;
+                    cursor: pointer !important;
+                    border: none;
+                    z-index: 100;
+                    color: white;
+                    font-size: 20px;
+                    background-color: #3b2603;
+                }
+
+                #music:hover {
+                    background-color: #845302;
+                }
+
+                 #soundeff {
+                    position: fixed;
+                    top: 20px;
+                    right: 100px;
+                    height: 60px;
+                    width: 60px;
+                    z-index: 100;
+                    cursor: pointer !important;
+                    border: none;
+                    color: white;
+                    font-size: 20px;
+                    background-color: #3b2603;
+                }
+                #soundeff:hover {
+                    background-color: #845302;
+                }
+
+                #vinay {
+                    position: fixed;
+                    bottom: 20px;
+                    left: 20px;
+                    height: 60px;
+                    width: 60px;
+                    z-index: 100;
+                    cursor: pointer !important;
+                    border: none;
+                }
+
+                 #vinay img{
+                    cursor: pointer !important;
+                }
     </style>
 </head>
 <body>
-    <div id="can">
-        <canvas id='canvas'></canvas>
+    <div id="menu">
+        <div id = "main">
+            <img src="code/media/header.png" width="700px" height="150px"></img>
+            <h2 style="padding:20px;">Greetings! Cadet, Enter your name</h2>
+            <input type="text" id="name" name="user_name">
+             <h2 style="padding:20px;">Choose a charecter</h2>
+            <div id="charpicker">
+                <div>
+                  <div class="item">
+                        <input type="radio" name="sport" value="1" id="1" class="sports-switch-input" checked>
+                              <label for="1" class="sports-switch-label">
+                                    <div style="position:relative">
+                                         <svg class="check" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" x="0px" y="0px" viewBox="0 0 100 100" enable-background="new 0 0 100 100" xml:space="preserve"><path d="M98.992,49.997c0,27.061-21.935,48.995-48.996,48.995C22.936,98.992,1,77.058,1,49.997S22.936,1,49.996,1  C77.058,1,98.992,22.937,98.992,49.997z M83.544,36.151L71.967,25.894L44.398,57.011L30.652,42.813L19.542,53.571l25.358,26.19  L83.544,36.151z"></path></svg>
+                                    </div>
+                                    <img src="code/media/man1.png"></img>
+                                </label>
+                  </div>
+              <div class="item">
+                        <input type="radio" name="sport" value="2" id="2" class="sports-switch-input">
+                              <label for="2" class="sports-switch-label">
+                                    <div style="position:relative">
+                                         <svg class="check" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" x="0px" y="0px" viewBox="0 0 100 100" enable-background="new 0 0 100 100" xml:space="preserve"><path d="M98.992,49.997c0,27.061-21.935,48.995-48.996,48.995C22.936,98.992,1,77.058,1,49.997S22.936,1,49.996,1  C77.058,1,98.992,22.937,98.992,49.997z M83.544,36.151L71.967,25.894L44.398,57.011L30.652,42.813L19.542,53.571l25.358,26.19  L83.544,36.151z"></path></svg>
+                                    </div>
+                                    <img src="code/media/man2.png"></img>
+                                </label>
+              </div>
+              <div class="item">
+                        <input type="radio" name="sport" value="3" id="3" class="sports-switch-input">
+                              <label for="3" class="sports-switch-label">
+                                    <div style="position:relative">
+                                         <svg class="check" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" x="0px" y="0px" viewBox="0 0 100 100" enable-background="new 0 0 100 100" xml:space="preserve"><path d="M98.992,49.997c0,27.061-21.935,48.995-48.996,48.995C22.936,98.992,1,77.058,1,49.997S22.936,1,49.996,1  C77.058,1,98.992,22.937,98.992,49.997z M83.544,36.151L71.967,25.894L44.398,57.011L30.652,42.813L19.542,53.571l25.358,26.19  L83.544,36.151z"></path></svg>
+                                    </div>
+                                    <img src="code/media/man3.png"></img>
+                                </label>
+              </div>
+              <div class="item">
+                        <input type="radio" name="sport" value="4" id="4" class="sports-switch-input">
+                              <label for="4" class="sports-switch-label">
+                                    <div style="position:relative">
+                                         <svg class="check" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" x="0px" y="0px" viewBox="0 0 100 100" enable-background="new 0 0 100 100" xml:space="preserve"><path d="M98.992,49.997c0,27.061-21.935,48.995-48.996,48.995C22.936,98.992,1,77.058,1,49.997S22.936,1,49.996,1  C77.058,1,98.992,22.937,98.992,49.997z M83.544,36.151L71.967,25.894L44.398,57.011L30.652,42.813L19.542,53.571l25.358,26.19  L83.544,36.151z"></path></svg>
+                                    </div>
+                                    <img src="code/media/man4.png"></img>
+                                </label>
+              </div>
+              <div class="item">
+                        <input type="radio" name="sport" value="5" id="5" class="sports-switch-input">
+                              <label for="5" class="sports-switch-label">
+                                    <div style="position:relative">
+                                         <svg class="check" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" x="0px" y="0px" viewBox="0 0 100 100" enable-background="new 0 0 100 100" xml:space="preserve"><path d="M98.992,49.997c0,27.061-21.935,48.995-48.996,48.995C22.936,98.992,1,77.058,1,49.997S22.936,1,49.996,1  C77.058,1,98.992,22.937,98.992,49.997z M83.544,36.151L71.967,25.894L44.398,57.011L30.652,42.813L19.542,53.571l25.358,26.19  L83.544,36.151z"></path></svg>
+                                    </div>
+                                    <img src="code/media/man5.png"></img>
+                                </label>
+              </div>
+              <div class="item">
+                        <input type="radio" name="sport" value="6" id="6" class="sports-switch-input">
+                              <label for="6" class="sports-switch-label">
+                                    <div style="position:relative">
+                                         <svg class="check" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" x="0px" y="0px" viewBox="0 0 100 100" enable-background="new 0 0 100 100" xml:space="preserve"><path d="M98.992,49.997c0,27.061-21.935,48.995-48.996,48.995C22.936,98.992,1,77.058,1,49.997S22.936,1,49.996,1  C77.058,1,98.992,22.937,98.992,49.997z M83.544,36.151L71.967,25.894L44.398,57.011L30.652,42.813L19.542,53.571l25.358,26.19  L83.544,36.151z"></path></svg>
+                                    </div>
+                                    <img src="code/media/man6.png"></img>
+                                </label>
+              </div>
+              <div class="item">
+                        <input type="radio" name="sport" value="7" id="7" class="sports-switch-input">
+                              <label for="7" class="sports-switch-label">
+                                    <div style="position:relative">
+                                         <svg class="check" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" x="0px" y="0px" viewBox="0 0 100 100" enable-background="new 0 0 100 100" xml:space="preserve"><path d="M98.992,49.997c0,27.061-21.935,48.995-48.996,48.995C22.936,98.992,1,77.058,1,49.997S22.936,1,49.996,1  C77.058,1,98.992,22.937,98.992,49.997z M83.544,36.151L71.967,25.894L44.398,57.011L30.652,42.813L19.542,53.571l25.358,26.19  L83.544,36.151z"></path></svg>
+                                    </div>
+                                    <img src="code/media/man7.png"></img>
+                                </label>
+              </div>
+              <div class="item">
+                        <input type="radio" name="sport" value="8" id="8" class="sports-switch-input">
+                              <label for="8" class="sports-switch-label">
+                                    <div style="position:relative">
+                                         <svg class="check" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" x="0px" y="0px" viewBox="0 0 100 100" enable-background="new 0 0 100 100" xml:space="preserve"><path d="M98.992,49.997c0,27.061-21.935,48.995-48.996,48.995C22.936,98.992,1,77.058,1,49.997S22.936,1,49.996,1  C77.058,1,98.992,22.937,98.992,49.997z M83.544,36.151L71.967,25.894L44.398,57.011L30.652,42.813L19.542,53.571l25.358,26.19  L83.544,36.151z"></path></svg>
+                                    </div>
+                                    <img src="code/media/man8.png"></img>
+                                </label>
+              </div>
+            </div>
+        </div>
+
+            <div id="res"> 
+            <h2>Choose a resolution</h2><p><br />(If the game lags on your computer then opt for a lower resolution) Left is the lowest and right is the highest</p>
+            <div id="slider"></div>
+            </div>
+
+            <br /><br />
+
+            <div id="svinfo">
+
+                <h2>Save your information?</h2>
+                <div class="slideThree">    
+                <input type="checkbox" value="None" id="slideThree" name="check" />
+                <label for="slideThree"></label>
+            </div>
+            <p>Save your info, so next time when you load the page, the game is automatically loaded. You can delete the info later if you wish.</p>
+            
+            <br /><br /><br />
+            </div>
+            <button id="start">START THE GAME</button>
+        </div>
     </div>
+
+
+    <div id = "game">
+        <button id="zoom">
+            2x
+        </button>
+        <button id="delinfo">
+            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" x="0px" y="0px" viewBox="0 0 100 100" enable-background="new 0 0 100 100" xml:space="preserve"><path d="M30.135,75.206c0,1.988,1.617,3.599,3.611,3.599h32.508c2.002,0,3.618-1.61,3.618-3.599V38.164H30.135V75.206z   M58.798,41.733h5.6v29.955c0,1.546-1.256,2.796-2.795,2.796c-1.549,0-2.804-1.25-2.804-2.796V41.733z M47.204,41.733h5.604v29.955  c0,1.546-1.254,2.796-2.802,2.796s-2.802-1.25-2.802-2.796V41.733z M35.527,41.733h5.596v29.955c0,1.546-1.255,2.796-2.798,2.796  s-2.797-1.25-2.797-2.796V41.733z"/><path d="M69.864,25.046H55.683v-2.052c0,0-0.064-1.799-1.87-1.799h-7.745c-1.804,0-1.742,1.799-1.742,1.799v2.052h-14.19  c-1.993,0-3.612,1.613-3.612,3.601v5.919h46.954v-5.919C73.477,26.659,71.859,25.046,69.864,25.046z"/></svg>
+        </button>
+        <button id="music">
+            <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 54.289 100" enable-background="new 0 0 54.289 100.001" xml:space="preserve"><path d="M30.673,0h-3.997v76.41c-4.103-2.337-10.685-1.913-16.739,1.513C2.012,82.406-1.996,90.314,0.986,95.587c2.983,5.271,11.825,5.912,19.75,1.428c5.849-3.309,9.553-8.479,9.899-13.084l0.038-1.046V26.978c26.379,6.088,22.981,33.389,14.02,47.961h0.968C71.639,27.978,30.673,29.976,30.673,0z"/></svg>
+        </button>
+        <button id="soundeff">
+            <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 93.32 100" enable-background="new 0 0 93.32 100" xml:space="preserve"><polygon points="0,37.457 0,62.542 22.076,62.542 39.135,79.601 39.135,20.398 22.076,37.457 "/><path d="M63.217,50C63.217,50,63.217,50,63.217,50L63.217,50c0-0.001,0-0.001,0-0.002c-0.16-11.028-3.777-20.315-11.345-28.367
+                c-2.663-2.834-6.913,1.431-4.257,4.257c6.487,6.903,9.443,14.674,9.581,24.111c-0.138,9.439-3.094,17.208-9.581,24.113
+                c-2.656,2.826,1.594,7.092,4.257,4.256C59.439,70.317,63.057,61.03,63.217,50C63.217,50,63.217,50,63.217,50z"/><path d="M78.269,50C78.269,50,78.269,50,78.269,50L78.269,50c0-0.001,0-0.001,0-0.002c-0.208-14.764-5.27-28.018-15.477-38.723
+                c-2.684-2.815-6.936,1.449-4.257,4.257C67.647,25.091,72.062,36.821,72.248,50c-0.186,13.179-4.601,24.91-13.713,34.468
+                c-2.679,2.809,1.573,7.072,4.257,4.256C72.999,78.019,78.061,64.765,78.269,50C78.269,50,78.269,50,78.269,50z"/><path d="M93.32,50L93.32,50C93.32,50,93.32,50,93.32,50c-0.208-18.576-6.708-35.666-19.606-49.083
+                c-2.694-2.804-6.946,1.459-4.257,4.257C81.258,17.45,87.109,33.004,87.3,50c-0.19,16.996-6.042,32.55-17.843,44.828
+                c-2.689,2.797,1.562,7.059,4.257,4.256C86.612,85.665,93.112,68.577,93.32,50.001C93.32,50,93.32,50,93.32,50
+                C93.32,50,93.32,50,93.32,50z"/></svg>
+        </button>
+        <a href="http://vinayck.com/" id="vinay">
+            <img src="code/media/vinay.png" height="60px" width="60px"></img>
+        </a>
+
+        <div id="can">
+            <canvas id='canvas'></canvas>
+        </div>
+    <div>
 </body>
 </html>
