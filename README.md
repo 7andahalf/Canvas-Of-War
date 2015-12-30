@@ -1,8 +1,4 @@
-# Canvas Of War
-
 ![Alt text](code/media/header.png)
-
-An online 2d multiplayer shooting game
 
 ###About
 
