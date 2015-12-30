@@ -1,4 +1,7 @@
 # Canvas Of War
+
+![Alt text](code/media/header.png)
+
 An online 2d multiplayer shooting game
 
 ###About
@@ -22,16 +25,16 @@ For no multiplayer and to just explore open index.html. For multiplayer do the f
 - open a browser and go to http://server-ip:3000/
 - Enter your name
 - Invite your friends, ask them to do the same thing. Enter different names
-- Controls: 
--- Moving : up,down,left,right or w,a,s,d keys
--- Shooting : spacebar or mouse click
--- Aiming : Mouse
--- Zooming : Left shift or button in the top right corner
--- Reloading : r key (automatic reloading if ammo is deplenished)
--- Mute music: click on the music button to toggle the background music
--- Mute sound effects: click on the speaker button to toggle the sound effects
--- Delete info : If you chose to save your info and now want to delete it, click on the trash button in the right-bottom corner
-- Enjoy!
+
+###Controls: 
+- Moving : up,down,left,right or w,a,s,d keys
+- Shooting : spacebar or mouse click
+- Aiming : Mouse
+- Zooming : Left shift or button in the top right corner
+- Reloading : r key (automatic reloading if ammo is deplenished)
+- Mute music: click on the music button to toggle the background music
+- Mute sound effects: click on the speaker button to toggle the sound effects
+- Delete info : If you chose to save your info and now want to delete it, click on the trash button in the right-bottom corner
 
 ###Screenshot and demo
 
