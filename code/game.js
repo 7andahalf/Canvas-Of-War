@@ -590,6 +590,7 @@ var img_heart = img_res('heart.png');
 var img_boost = img_res('boost.png');
 var img_ammu = img_res('ammu.png');
 var img_arrow = img_res('arrow.png');
+var img_hit = img_res('hitred.png');
 var lastm = 0;
 var lmid = 0; 
 var lmv = 0;
@@ -623,6 +624,12 @@ game.prototype.redraw_world = function()
           angle = global_game.gun.body.GetAngle()+offs;
           global_game.ctx.drawImage(global_game.gun.imgss, pl.x - 0.3 + (3.3 * Math.cos(angle))  , pl.y + (3.3 * Math.sin(angle)), 1, 1);
           global_game.gun.showshoot--;
+        }
+
+    if(playerhit >= 0){
+          var offs = -0.1;
+          global_game.ctx.drawImage(img_hit, pl.x - 1.3 , pl.y - 2, 2.6, 4);
+          playerhit--;
         }
 
     plm = pl;
@@ -917,6 +924,8 @@ game.prototype.key_up = function()
       }
   }
 
+var playerhit = 0;
+
 game.prototype.setup_collision_handler = function()
   {
     var that = this;
@@ -937,6 +946,7 @@ game.prototype.setup_collision_handler = function()
         if(a.tp == "bullet"){that.destroy_object(a);
           if(b.m && global_game.health > 0 && !a.mp){
             global_game.health--;
+            playerhit++;
             if(global_game.health < 5){
               global_game.player.dieded(a.name);
             }
@@ -950,6 +960,7 @@ game.prototype.setup_collision_handler = function()
         if(b.tp == "bullet"){that.destroy_object(b);
           if(a.m && global_game.health > 0 && !b.mp){
             global_game.health--;
+            playerhit++;
             if(global_game.health < 5){
               global_game.player.dieded(b.name);
             }
@@ -1254,12 +1265,12 @@ player.prototype.tick = function()
   {    
       if(this.do_move_left)
       {
-          this.add_velocity(new b2Vec2(-1,0));
+          this.add_velocity(new b2Vec2(-0.2,0));
       }
       
       if(this.do_move_right)
       {
-          this.add_velocity(new b2Vec2(1,0));
+          this.add_velocity(new b2Vec2(0.2,0));
       }
       
       if(this.do_move_up)
