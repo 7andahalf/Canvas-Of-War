@@ -26,6 +26,7 @@ For no multiplayer and to just explore open index.html. For multiplayer do the f
 - Moving : up,down,left,right or w,a,s,d keys
 - Shooting : spacebar or mouse click
 - Aiming : Mouse
+- Throwing a grenage: q key
 - Zooming : Left shift or button in the top right corner
 - Reloading : r key (automatic reloading if ammo is deplenished)
 - Mute music: click on the music button to toggle the background music
