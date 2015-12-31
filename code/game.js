@@ -9,6 +9,7 @@
 var mreload = new Audio('code/media/m3.wav');
 var mbg = new Audio('code/media/mbg.aac');
 var mboost = new Audio('code/media/m5.wav');
+var mblast = new Audio('code/media/m6.aac');
 
 
 mbg.play();
@@ -224,6 +225,10 @@ function socketRecieve(){
         pr.gun.shoot(pr.body.GetPosition(),msg.gunang);
           msg.bull--;
         }
+      while(msg.bomb > 0){
+        pr.gun.bombe(pr.body.GetPosition(),msg.gunang);
+          msg.bomb--;
+        }
       }
   });
 }
@@ -247,11 +252,14 @@ function socketSend(){
   ply = global_game.player.body.GetPosition().y;
   gan = global_game.gun.body.GetAngle();
   bull = global_game.gun.bull;
+  bum= global_game.gun.bum;
 
-  if(lastmess == 0 || Math.abs(lastmess.plposx - plx) > 0.1 || Math.abs(lastmess.plposy - ply) > 0.1 || Math.abs(lastmess.gunang - gan) > 0.05 || bull > 0){
-    lastmess = {name : global_game.name, plposx : roundd(plx),  plposy : roundd(ply), gunang: rounde(gan), bull: bull};
-    global_game.socket.emit('game', {name : global_game.name, plposx : plx,  plposy : ply, gunang: gan, bull: bull, chim: charimg}); 
+  if(lastmess == 0 || Math.abs(lastmess.plposx - plx) > 0.1 || Math.abs(lastmess.plposy - ply) > 0.1 || Math.abs(lastmess.gunang - gan) > 0.05 || bull > 0 || bum > 0){
+    lastmess = {name : global_game.name, plposx : roundd(plx),  plposy : roundd(ply), gunang: rounde(gan), bull: bull, bomb: bum};
+    global_game.socket.emit('game', {name : global_game.name, plposx : plx,  plposy : ply, gunang: gan, bull: bull, chim: charimg, bomb: bum});
     global_game.gun.bull = 0;
+    global_game.gun.bum = 0;
+
   }       
 }
 
@@ -262,6 +270,7 @@ function game()
     this.game_objects = [];
     this.health = 100;
     this.ammunition = 100;
+    this.bombs = 5;
     this.booster = 100;
     this.to_destroy = [];
     this.time_elapsed = 0;
@@ -591,6 +600,7 @@ var img_boost = img_res('boost.png');
 var img_ammu = img_res('ammu.png');
 var img_arrow = img_res('arrow.png');
 var img_hit = img_res('hitred.png');
+var img_blast = img_res('blast.png');
 var lastm = 0;
 var lmid = 0; 
 var lmv = 0;
@@ -624,6 +634,11 @@ game.prototype.redraw_world = function()
           angle = global_game.gun.body.GetAngle()+offs;
           global_game.ctx.drawImage(global_game.gun.imgss, pl.x - 0.3 + (3.3 * Math.cos(angle))  , pl.y + (3.3 * Math.sin(angle)), 1, 1);
           global_game.gun.showshoot--;
+        }
+
+    if(bbbn > 0){
+          global_game.ctx.drawImage(img_blast, bbbx-5, bbby-5, 10, 10);
+          bbbn--;
         }
 
     if(playerhit >= 0){
@@ -720,6 +735,14 @@ game.prototype.redraw_world = function()
     t = (global_game.time_elapsed-dmt)/60;
     write_text({x : this.canvas.posx, y : this.canvas.posy - 3 , font : 'bold 3px Arial' , color : 'red' , text : "You died", ctx : this.ctx, align : "center"});
     write_text({x : this.canvas.posx, y : this.canvas.posy , font : 'bold 2px Arial' , color : 'red' , text : "Resurrection in " + Math.round(10 - t) + " seconds", ctx : this.ctx, align : "center"});
+    }
+
+    var hq = global_game.bombs;
+    var hqh = 0;
+    while(hq > 0){
+        this.ctx.drawImage(mbomb, this.canvas.posx - w/2 + 2.5 + 1.1*hqh, this.canvas.posy - h/2 + 6.5, 0.75, 1);
+        hqh++;
+        hq--;
     }
 }
 
@@ -829,6 +852,8 @@ function pershoot(){
 game.prototype.start_handling = function()
   {
       var that = this;
+
+
       
       $(document).on('keydown.game' , function(e)
       {
@@ -855,7 +880,7 @@ game.prototype.start_handling = function()
       });
   }
 
-
+bd = 0;
 game.prototype.key_down = function()
   {
       if(global_game.player.died){return;}
@@ -863,6 +888,11 @@ game.prototype.key_down = function()
       if(global_game.keys[16])
       {
           zkd = 1;
+      }
+
+      if(global_game.keys[81] && bd == 0)
+      {
+          bd = 1;
       }
 
       if(global_game.keys[82] && lsh != 1)
@@ -905,6 +935,17 @@ game.prototype.key_up = function()
       {
           zoom();
           zkd = 0;
+      }
+
+      if(!global_game.keys[81] && bd == 1)
+      {
+          if(global_game.bombs > 0){
+          global_game.gun.bombe();
+          global_game.gun.bum++;
+          global_game.bombs--;
+          bd = 0;
+          }
+          
       }
 
       if(!global_game.keys[38]  && !global_game.keys[87] )
@@ -1303,6 +1344,8 @@ player.prototype.tick = function()
         this.died = false;
         global_game.health = 100;
         global_game.booster = 100;
+        global_game.ammunition = 100;
+        global_game.bombs = 5;
         dmv = 0;
 
         spawnloc = [[115, 100],
@@ -1371,6 +1414,7 @@ var gun = function(physics,details) {
     this.age = 0;
     this.showshoot = 0;
     this.bull = 0;
+    this.bum = 0;
     this.adetails = {
       rpm : 720,
       rpc : 80,
@@ -1550,6 +1594,17 @@ gun.prototype.shoot = function()
       this.bull++;
   }
 
+gun.prototype.bombe = function()
+  {
+      var pl = global_game.player.body.GetPosition();
+      var angle = global_game.gun.body.GetAngle();
+      this.bomb = new bomb(global_game, { image: img_res('bomb.png'), x: pl.x + (4 * Math.cos(angle)), y: pl.y + (4 * Math.sin(angle)), width: 0.75, height: 1});
+      global_game.game_objects.push(this.bomb);
+      bullvel =20;
+      this.bomb.mp = true;
+      this.bomb.add_velocity(new b2Vec2(bullvel * Math.cos(angle),bullvel * Math.sin(angle)));
+  }
+
 // OPPONENTS GUN
 
 var ogun = function(physics,details) {
@@ -1701,4 +1756,204 @@ ogun.prototype.shoot = function(pl, ang)
       this.bullet.add_velocity(new b2Vec2(bullvel * Math.cos(angle),bullvel * Math.sin(angle)));
       this.showshoot = 1;
       this.bullet.name=this.name;
+  }
+
+  ogun.prototype.bombe = function(pl, ang)
+  {
+      var angle = ang;
+      this.bomb = new bomb(global_game, { image: img_res('bomb.png'), x: pl.x + (4 * Math.cos(angle)), y: pl.y + (4 * Math.sin(angle)), width: 0.75, height: 1});
+      global_game.game_objects.push(this.bomb);
+      bullvel =20;
+      this.bomb.mp = false;
+      this.bomb.add_velocity(new b2Vec2(bullvel * Math.cos(angle),bullvel * Math.sin(angle)));
+      this.bomb.name=this.name;
+  }
+
+// bomb
+
+var mbomb = img_res('bomb.png');
+
+var bomb  = function(physics,details) {
+    this.details = details = details || {};
+
+    this.definition = new b2BodyDef();
+    this.age = 0;
+
+    for(var k in this.definitionDefaults) {
+      this.definition[k] = details[k] || this.definitionDefaults[k];
+    }
+    this.definition.position = new b2Vec2(details.x || 0, details.y || 0);
+    this.definition.linearVelocity = new b2Vec2(details.vx || 0, details.vy || 0);
+    this.definition.userData = this;
+
+    this.definition.type = details.type == "static" ? b2Body.b2_staticBody :
+                                                      b2Body.b2_dynamicBody;
+
+    this.body = physics.world.CreateBody(this.definition);
+
+    this.fixtureDef = new b2FixtureDef();
+    for(var l in this.fixtureDefaults) {
+      this.fixtureDef[l] = details[l] || this.fixtureDefaults[l];
+    }
+
+
+    details.shape = details.shape || this.defaults.shape;
+
+    switch(details.shape) {
+      case "circle":
+        details.radius = details.radius || this.defaults.radius;
+        this.fixtureDef.shape = new b2CircleShape(details.radius);
+        break;
+      case "polygon":
+        this.fixtureDef.shape = new b2PolygonShape();
+        this.fixtureDef.shape.SetAsArray(details.points,details.points.length);
+        break;
+      case "block":
+      default:
+        details.width = details.width || this.defaults.width;
+        details.height = details.height || this.defaults.height;
+
+        this.fixtureDef.shape = new b2PolygonShape();
+        this.fixtureDef.shape.SetAsBox(details.width/2,
+                                       details.height/2);
+        break;
+    }
+
+    this.body.CreateFixture(this.fixtureDef);
+  };
+
+
+  bomb.prototype.defaults = {
+    shape: "block",
+    width: 4,
+    height: 4,
+    radius: 1
+  };
+
+  bomb.prototype.fixtureDefaults = {
+    density: 0,
+    friction: 2,
+    restitution: 0.2
+  };
+
+  bomb.prototype.definitionDefaults = {
+    active: true,
+    allowSleep: true,
+    angle: 0,
+    angularVelocity: 0,
+    awake: true,
+    bullet: false,
+    fixedRotation: false
+  };
+
+
+  bomb.prototype.draw = function(context) {
+    if(this.body == null || global_game.player.died){return;}
+    var pos = this.body.GetPosition(),
+        angle = this.body.GetAngle();
+
+    context.save();
+    context.translate(pos.x,pos.y);
+    context.rotate(angle);
+
+
+    if(this.details.color) {
+      context.fillStyle = this.details.color;
+
+      switch(this.details.shape) {
+        case "circle":
+          context.beginPath();
+          context.arc(0,0,this.details.radius,0,Math.PI*2);
+          context.fill();
+          break;
+        case "polygon":
+          var points = this.details.points;
+          context.beginPath();
+          context.moveTo(points[0].x,points[0].y);
+          for(var i=1;i<points.length;i++) {
+            context.lineTo(points[i].x,points[i].y);
+          }
+          context.fill();
+          break;
+        case "block":
+          context.fillRect(-this.details.width/2,
+                           -this.details.height/2,
+                           this.details.width,
+                           this.details.height);
+        default:
+          break;
+      }
+    }
+
+    if(this.details.image) {
+      context.drawImage(this.details.image,
+                        -this.details.width/2,
+                        -this.details.height/2,
+                        this.details.width,
+                        this.details.height);
+
+    }
+    context.restore();
+  }
+
+bbbx = 0;
+bbby = 0;
+bbbn = 0;
+
+bomb.prototype.tick = function()
+  {
+  if(this.age>(60*3)){
+    bbbx = this.body.GetPosition().x;
+    bbby = this.body.GetPosition().y;
+    pl = global_game.player.body.GetPosition();
+    d = Math.sqrt((pl.x-bbbx)*(pl.x-bbbx)+(pl.y-bbby)*(pl.y-bbby));
+    if(d < 20){
+      global_game.health-=500*((20-d)/20);
+      if(global_game.health<0){
+        global_game.health=0;
+        if(this.mp){
+          global_game.player.sudieded();
+        }else{
+          global_game.player.dieded(this.name);
+        }
+      }
+    }
+
+    if(d < 70){
+      vplay(mblast,((70-d)/400));
+    }
+
+    bbbn++;
+    bbbn++;
+    global_game.destroy_object(this);
+  }
+  this.age++;
+  }
+  bomb.prototype.add_velocity = function(vel)
+  {
+      var b = this.body;
+      var v = b.GetLinearVelocity();
+      
+      v.Add(vel);
+      
+      if(Math.abs(v.y) > this.max_ver_vel){
+          v.y = this.max_ver_vel * v.y/Math.abs(v.y);
+      }
+      
+      if(Math.abs(v.x) > this.max_hor_vel){
+          v.x = this.max_hor_vel * v.x/Math.abs(v.x);
+      }
+
+      b.SetLinearVelocity(v);
+  }
+
+  bomb.prototype.destroy = function()
+  {
+    if(this.body == null)
+    {
+      return;
+    }
+    this.body.GetWorld().DestroyBody( this.body );
+    this.body = null;
+    this.dead = true;
   }
