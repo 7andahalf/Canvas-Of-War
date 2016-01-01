@@ -29,6 +29,7 @@ For no multiplayer and to just explore open index.html. For multiplayer do the f
 - Throwing a grenage: q key
 - Zooming : Left shift or button in the top right corner
 - Reloading : r key (automatic reloading if ammo is deplenished)
+- Exchange of gun : when near a gun press e key to exchange the present gun to that one
 - Mute music: click on the music button to toggle the background music
 - Mute sound effects: click on the speaker button to toggle the sound effects
 - Delete info : If you chose to save your info and now want to delete it, click on the trash button in the right-bottom corner
