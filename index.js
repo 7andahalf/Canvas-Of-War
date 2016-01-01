@@ -20,6 +20,10 @@ io.on('connection', function(socket){
 		io.emit('message', msg);
 	});
 
+    socket.on('spawn', function(msg){
+        io.emit('spawn', msg);
+    });
+
 	socket.on('game', function(msg){
 		for(var j in users){
         	if(users[j][1] == socket.id){
