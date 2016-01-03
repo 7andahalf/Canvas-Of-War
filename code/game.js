@@ -224,6 +224,7 @@ function socketRecieve(){
     }else{
       pr.body.SetPosition(new b2Vec2(msg.plposx, msg.plposy));
       pr.gun.body.SetAngle(msg.gunang);
+      pr.gun.imggg = gunimgs[msg.gun-1];
       while(msg.bull > 0){
         pr.gun.shoot(pr.body.GetPosition(),msg.gunang);
           msg.bull--;
@@ -258,8 +259,8 @@ function socketSend(){
   bum= global_game.gun.bum;
 
   if(lastmess == 0 || Math.abs(lastmess.plposx - plx) > 0.1 || Math.abs(lastmess.plposy - ply) > 0.1 || Math.abs(lastmess.gunang - gan) > 0.05 || bull > 0 || bum > 0){
-    lastmess = {name : global_game.name, plposx : roundd(plx),  plposy : roundd(ply), gunang: rounde(gan), bull: bull, bomb: bum};
-    global_game.socket.emit('game', {name : global_game.name, plposx : plx,  plposy : ply, gunang: gan, bull: bull, chim: charimg, bomb: bum});
+    lastmess = {name : global_game.name, plposx : roundd(plx),  plposy : roundd(ply), gunang: rounde(gan), bull: bull, bomb: bum, gun:global_game.gun.adetails.id};
+    global_game.socket.emit('game', {name : global_game.name, plposx : plx,  plposy : ply, gunang: gan, bull: bull, chim: charimg, bomb: bum, gun:global_game.gun.adetails.id});
     global_game.gun.bull = 0;
     global_game.gun.bum = 0;
 
@@ -604,6 +605,12 @@ var img_ammu = img_res('ammu.png');
 var img_arrow = img_res('arrow.png');
 var img_hit = img_res('hitred.png');
 var img_blast = img_res('blast.png');
+var gunimgs = []
+p = 1;
+while(p < 10){
+  gunimgs.push([img_res('gun'+String(p)+'.png'), img_res('rgun'+String(p)+'.png')]);
+  p+=1;
+}
 var lastm = 0;
 var lmid = 0; 
 var lmv = 0;
@@ -802,7 +809,7 @@ game.prototype.tick = function(cnt) {
               lsh = 0;
     }
     if(global_game.time_elapsed % 1000 == 0){
-      spawnloc = [[110, 100]
+      spawnloc = [[110, 100],
         [110, 130],
         [110, 160],
         [145, 160],
@@ -812,7 +819,7 @@ game.prototype.tick = function(cnt) {
         [265, 160],
         [270, 142],
         [255, 110]];
-    loc = spawnloc[Math.floor(Math.random()*spawnloc.length)];
+    loc = spawnloc[Math.floor(Math.random()*(spawnloc.length))];
     itm = Math.floor(Math.random()*10);
     //spawn(itm,loc[0],loc[1]);
     global_game.socket.emit('spawn', {id : itm, px : loc[0],  py : loc[1]}); 
@@ -1482,6 +1489,7 @@ var gun = function(physics,details) {
     this.bull = 0;
     this.bum = 0;
     this.adetails = {
+      id : 1,
       rpm : 720,
       rpc : 80,
       accuracy: 0.5,
@@ -1686,6 +1694,7 @@ var ogun = function(physics,details) {
     this.definition.position = new b2Vec2(details.x || 0, details.y || 0);
     this.definition.linearVelocity = new b2Vec2(details.vx || 0, details.vy || 0);
     this.definition.userData = this;
+    this.imggg = gunimgs[0];
     
     
     this.imgss = img_res('showfire.png');
@@ -1803,9 +1812,9 @@ var ogun = function(physics,details) {
 ogun.prototype.tick = function()
   {
           if(Math.cos(this.body.GetAngle()) < 0){
-              this.details.image = global_game.gun.details.image1;
+              this.details.image = this.imggg[1];
           }else{
-              this.details.image = global_game.gun.details.image2;
+              this.details.image = this.imggg[0];
           }
           this.age++;   
   }
@@ -2026,6 +2035,7 @@ bomb.prototype.tick = function()
 
   guns = [
     {
+      id : 1,
       rpm : 720,
       rpc : 80,
       accuracy: 0.5,
@@ -2035,6 +2045,7 @@ bomb.prototype.tick = function()
       rldt: 2,
       zooms: [3,5,10,15]
     },{
+      id : 2,
       rpm : 720,
       rpc : 80,
       accuracy: 0.5,
@@ -2044,6 +2055,7 @@ bomb.prototype.tick = function()
       rldt: 2,
       zooms: [3,5,10,15]
     },{
+      id : 3,
       rpm : 720,
       rpc : 80,
       accuracy: 0.5,
@@ -2053,6 +2065,7 @@ bomb.prototype.tick = function()
       rldt: 2,
       zooms: [3,5,10,15]
     },{
+      id : 4,
       rpm : 720,
       rpc : 80,
       accuracy: 0.5,
@@ -2062,6 +2075,7 @@ bomb.prototype.tick = function()
       rldt: 2,
       zooms: [3,5,10,15]
     },{
+      id : 5,
       rpm : 720,
       rpc : 80,
       accuracy: 0.5,
@@ -2071,6 +2085,7 @@ bomb.prototype.tick = function()
       rldt: 2,
       zooms: [3,5,10,15]
     },{
+      id : 6,
       rpm : 720,
       rpc : 80,
       accuracy: 0.5,
@@ -2080,6 +2095,7 @@ bomb.prototype.tick = function()
       rldt: 2,
       zooms: [3,5,10,15]
     },{
+      id : 7,
       rpm : 720,
       rpc : 80,
       accuracy: 0.5,
@@ -2089,6 +2105,7 @@ bomb.prototype.tick = function()
       rldt: 2,
       zooms: [3,5,10,15]
     },{
+      id : 8,
       rpm : 720,
       rpc : 80,
       accuracy: 0.5,
@@ -2098,6 +2115,7 @@ bomb.prototype.tick = function()
       rldt: 2,
       zooms: [3,5,10,15]
     },{
+      id : 9,
       rpm : 720,
       rpc : 80,
       accuracy: 0.5,
